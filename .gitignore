@@ -23,7 +23,3 @@ docs/maintainers/reviews/
 docs/reference/api
 docs/.vitepress/cache
 docs/.vitepress/dist
-
-# Repository-specific
-# local worktrees
-.claude/worktrees/
