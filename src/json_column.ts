@@ -29,10 +29,14 @@ export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<T[]> {
 /**
  * Column options that store one model property as JSON text and refuse an invalid value in both
  * directions. `null` passes through unchanged. `table` and `column` only name the column in errors.
- * @throws Error `Invalid persisted JSON in <table>.<column>` when a written or stored value fails
- *   `validate`, or stored text is not JSON.
+ * A written value is validated before and after encoding, so whatever `prepare` returns, `consume`
+ * accepts.
+ * @throws Error `Invalid persisted JSON in <table>.<column>` when a written value or its JSON
+ *   encoding fails `validate`, a stored value fails `validate`, or stored text is not JSON.
  * @throws Error `Cannot persist undefined JSON in <table>.<column>` when a written value passes
  *   `validate` but has no JSON encoding.
+ * @throws Error `Cannot encode JSON in <table>.<column>` when encoding a written value throws (a
+ *   BigInt or a cycle, for example); the original error is the `cause`.
  */
 export function jsonColumn<T>(
   table: string,
@@ -47,10 +51,18 @@ export function jsonColumn<T>(
       if (!validate(value)) throw invalid()
       // The lib types promise a string, but functions and undefined serialise to undefined, and an
       // annotated declaration would narrow straight back to string on assignment.
-      const encoded = JSON.stringify(value) as string | undefined
+      let encoded: string | undefined
+      try {
+        encoded = JSON.stringify(value) as string | undefined
+      } catch (cause) {
+        throw new Error(`Cannot encode JSON in ${table}.${column}`, { cause })
+      }
       if (encoded === undefined) {
         throw new Error(`Cannot persist undefined JSON in ${table}.${column}`)
       }
+      // Encoding can change the shape (holes and NaN become null, toJSON replaces the value): refuse
+      // an encoding the read side would reject instead of storing it.
+      if (!validate(JSON.parse(encoded))) throw invalid()
       return encoded
     },
     consume(value) {

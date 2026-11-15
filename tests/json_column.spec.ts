@@ -43,6 +43,114 @@ test.group('jsonColumn', () => {
       'Cannot persist undefined JSON in heroes.origin'
     )
   })
+
+  test('refuses a written value whose encoding the validator rejects', ({ assert }) => {
+    const flags = jsonColumn('heroes', 'flags', isArrayOf(isBoolean))
+    // A hole encodes as null.
+    assert.throws(() => flags.prepare(Array(1)), 'Invalid persisted JSON in heroes.flags')
+
+    const limits = jsonColumn('heroes', 'limits', isArrayOf(isOneOf([Number.NaN, Infinity])))
+    // isOneOf matches NaN (Array.includes uses SameValueZero); both encode as null.
+    assert.throws(
+      () => limits.prepare([Number.NaN, Infinity]),
+      'Invalid persisted JSON in heroes.limits'
+    )
+
+    const isAlias = (value: unknown): value is { alias: string } =>
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as { alias?: unknown }).alias === 'string'
+    const alias = jsonColumn('heroes', 'alias', isAlias)
+    const disguised = { alias: 'Batman', toJSON: () => 'Bruce Wayne' }
+    assert.throws(() => alias.prepare(disguised), 'Invalid persisted JSON in heroes.alias')
+  })
+
+  test('wraps an encoding error in a column error with the original as its cause', ({ assert }) => {
+    const anything = (value: unknown): value is unknown => value !== null
+    const options = jsonColumn('heroes', 'origin', anything)
+    const cycle: Record<string, unknown> = {}
+    cycle.self = cycle
+    for (const value of [1n, cycle]) {
+      try {
+        options.prepare(value)
+        assert.fail('prepare should throw')
+      } catch (error) {
+        assert.equal((error as Error).message, 'Cannot encode JSON in heroes.origin')
+        assert.instanceOf((error as Error).cause, TypeError)
+      }
+    }
+
+    const sentinel = new Error('toJSON failed')
+    try {
+      options.prepare({
+        toJSON: () => {
+          throw sentinel
+        },
+      })
+      assert.fail('prepare should throw')
+    } catch (error) {
+      assert.equal((error as Error).message, 'Cannot encode JSON in heroes.origin')
+      assert.strictEqual((error as Error).cause, sentinel)
+    }
+  })
+
+  test('whatever prepare returns, consume accepts', ({ assert }) => {
+    const options = jsonColumn('heroes', 'aliases', isArrayOf(isOneOf(['Batman', 'Robin'])))
+    const encoded = options.prepare(['Robin', 'Batman'])
+    assert.deepEqual(options.consume(encoded), ['Robin', 'Batman'])
+  })
+})
+
+test.group('jsonColumn on a Lucid model', () => {
+  // An in-memory adapter instead of a database driver: Lucid's own save and hydration paths run
+  // the column hooks, which is the boundary under test. Driver behaviour is not covered.
+  function heroModel() {
+    const rows = new Map<number, Record<string, unknown>>()
+    class Hero extends BaseModel {
+      @column({ isPrimary: true })
+      declare id: number
+
+      @column(jsonColumn('heroes', 'aliases', isArrayOf(isOneOf(['Batman', 'Robin']))))
+      declare aliases: ('Batman' | 'Robin')[]
+    }
+    Hero.boot()
+    Hero.useAdapter({
+      async insert(instance, attributes) {
+        const id = rows.size + 1
+        rows.set(id, { ...attributes, id })
+        instance.$consumeAdapterResult({ id })
+      },
+    } as Parameters<typeof Hero.useAdapter>[0])
+    return { Hero, rows }
+  }
+
+  test('save stores the encoding and hydration decodes it', async ({ assert }) => {
+    const { Hero, rows } = heroModel()
+    const hero = new Hero()
+    hero.aliases = ['Batman', 'Robin']
+    await hero.save()
+
+    assert.deepEqual(rows.get(hero.id), { id: 1, aliases: '["Batman","Robin"]' })
+    const fetched = Hero.$createFromAdapterResult(rows.get(hero.id))!
+    assert.deepEqual(fetched.aliases, ['Batman', 'Robin'])
+  })
+
+  test('save refuses an invalid value and hydration refuses a malformed row', async ({
+    assert,
+  }) => {
+    const { Hero, rows } = heroModel()
+    const hero = new Hero()
+    hero.aliases = ['Joker'] as never
+    await assert.rejects(() => hero.save(), 'Invalid persisted JSON in heroes.aliases')
+    assert.equal(rows.size, 0)
+
+    for (const aliases of ['["Batman"', '["Joker"]']) {
+      assert.throws(
+        () => Hero.$createFromAdapterResult({ id: 2, aliases }),
+        'Invalid persisted JSON in heroes.aliases'
+      )
+    }
+  })
 })
 
 test.group('validators', () => {

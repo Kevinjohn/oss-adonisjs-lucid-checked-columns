@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `jsonColumn` validates a written value's JSON encoding as well as the value, so `prepare` never
+  returns text that `consume` refuses (array holes, `NaN`, a shape-changing `toJSON`).
+- `jsonColumn` wraps an encoding error (a `BigInt` or a cycle) in
+  `Cannot encode JSON in <table>.<column>`, with the original as `cause`.
+
 ## 0.1.0 - 2026-11-13
 
 First release.
