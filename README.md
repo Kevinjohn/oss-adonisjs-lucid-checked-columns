@@ -71,10 +71,13 @@ Any `(value: unknown) => value is T` function is a validator, so a host can supp
 
 Each refusal throws a plain `Error`:
 
-- `Invalid persisted JSON in <table>.<column>`: a written or stored value fails the validator, or
-  stored text is not JSON.
+- `Invalid persisted JSON in <table>.<column>`: a written value, its JSON encoding or a stored
+  value fails the validator, or stored text is not JSON. The encoding is checked because JSON can
+  change a value's shape: array holes and `NaN` become `null`, and `toJSON` replaces the value.
 - `Cannot persist undefined JSON in <table>.<column>`: a written value passes the validator but has
   no JSON encoding (a function, for example).
+- `Cannot encode JSON in <table>.<column>`: encoding a written value threw (a `BigInt` or a cycle,
+  for example). The original error is the `cause`.
 - `Invalid persisted date in <table>.<column>`
 - `Invalid persisted timestamp in <table>.<column>`
 
