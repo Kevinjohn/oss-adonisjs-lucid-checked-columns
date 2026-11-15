@@ -79,6 +79,19 @@ test.group('jsonColumn', () => {
         assert.instanceOf((error as Error).cause, TypeError)
       }
     }
+
+    const sentinel = new Error('toJSON failed')
+    try {
+      options.prepare({
+        toJSON: () => {
+          throw sentinel
+        },
+      })
+      assert.fail('prepare should throw')
+    } catch (error) {
+      assert.equal((error as Error).message, 'Cannot encode JSON in heroes.origin')
+      assert.strictEqual((error as Error).cause, sentinel)
+    }
   })
 
   test('whatever prepare returns, consume accepts', ({ assert }) => {
