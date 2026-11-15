@@ -11,29 +11,29 @@ As an application developer, I want a model property stored as JSON and checked 
 
 ## Acceptance criteria
 
-| Input      | Control    | Required/default/conditions                                                                                          |
-| ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
-| `table`    | Argument 1 | Required. Names the column in error messages only.                                                                   |
-| `column`   | Argument 2 | Required. Names the column in error messages only.                                                                   |
-| `validate` | Argument 3 | Required. A `(value: unknown) => value is T` guard; `isBoolean`, `isOneOf` and `isArrayOf` are provided and compose. |
+| Input      | Control    | Required/default/conditions                                                                                                                                                                                                                 |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `table`    | Argument 1 | Required string. Table name used only in error messages.                                                                                                                                                                                    |
+| `column`   | Argument 2 | Required string. Column name used only in error messages.                                                                                                                                                                                   |
+| `validate` | Argument 3 | Required TypeScript type guard `(value: unknown) => value is T`. Use `isBoolean` for booleans, `isOneOf(values)` for listed strings or numbers, `isArrayOf(validate)` to apply another validator to every array element, or your own guard. |
 
-- On save, a valid value is written as `JSON.stringify(value)`. On read, text is parsed with `JSON.parse`; a value the driver already decoded is checked as it is. `null` passes through both ways.
-- On save, the value and its JSON encoding must both pass `validate`, so whatever is written can be read back. A value or encoding that fails throws `Invalid persisted JSON in <table>.<column>` and nothing is saved.
-- A value with no JSON encoding (a function, for example) throws `Cannot persist undefined JSON in <table>.<column>`. A value whose encoding throws (a `BigInt` or a cycle) throws `Cannot encode JSON in <table>.<column>` with the original error as `cause`.
+- On save, an accepted non-null value is written as `JSON.stringify(value)`. On read, every string is parsed with `JSON.parse`; a non-string value from the driver is validated as it is. `null` passes through both ways without validation.
+- On save, a non-null value must pass `validate` both before encoding and after its JSON text is parsed back, so whatever is written can be read back. If either check fails, the save throws `Invalid persisted JSON in <table>.<column>` and nothing is written.
+- After a value passes `validate`, an encoding that returns `undefined` (a function, for example) throws `Cannot persist undefined JSON in <table>.<column>`, and an encoding that throws (a `BigInt` or a cycle) throws `Cannot encode JSON in <table>.<column>` with the original error as `cause`.
 - On read, text that is not JSON, or a decoded value that fails `validate`, throws `Invalid persisted JSON in <table>.<column>`; the row does not hydrate.
-- The helper never repairs or converts a value. Query-builder writes bypass it.
+- The helper refuses an invalid value rather than repairing it; beyond JSON encoding on save and parsing on read, it changes nothing. Query-builder writes bypass it.
 
 ## User flow
 
 ```mermaid
 flowchart TD
     A["Developer declares the property with jsonColumn and a validator"] --> B{"Saving or reading the model?"}
-    B -->|Saving| C{"Value and its JSON encoding valid?"}
+    B -->|Saving| C{"null, or a value that can be stored as valid JSON?"}
     C -->|No| D["Save fails naming the column; nothing is written"]
-    C -->|Yes| E["JSON text is stored"]
-    B -->|Reading| F{"Stored value is JSON and valid?"}
+    C -->|Yes| E["JSON text or null is stored"]
+    B -->|Reading| F{"null, or stored data that passes the JSON checks?"}
     F -->|No| G["Read fails naming the column; the row does not reach the application"]
-    F -->|Yes| H["Application receives the typed value"]
+    F -->|Yes| H["Application receives the validated value or null"]
 ```
 
 ## Code flow

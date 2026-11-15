@@ -4,16 +4,16 @@ As an application developer, I want to tell which model columns were declared wi
 
 **Status:** Current.
 **Access:** Application developer with access to the model class.
-**Entry:** `isJsonColumn(Model.$getColumn(name))`.
+**Entry:** `isJsonColumn(Model.$getColumn(propertyName))`, where `propertyName` is the model property name, not the database column name.
 **Documentation:** [API](../README.md#api), [Limits](../README.md#limits).
 **Source:** [JSON column](../src/json_column.ts).
 **Coverage:** [isJsonColumn tests](../tests/json_column.spec.ts).
 
 ## Acceptance criteria
 
-| Input     | Control    | Required/default/conditions                                                                   |
-| --------- | ---------- | --------------------------------------------------------------------------------------------- |
-| `options` | Argument 1 | The column's options from `Model.$getColumn(name)`; `undefined` (no such column) is accepted. |
+| Input     | Control    | Required/default/conditions                                                                           |
+| --------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| `options` | Argument 1 | The column's options from `Model.$getColumn(propertyName)`; `undefined` (no such column) is accepted. |
 
 - Returns true only for a column whose options came from `jsonColumn`.
 - Returns false for any other column, and for `undefined`.
