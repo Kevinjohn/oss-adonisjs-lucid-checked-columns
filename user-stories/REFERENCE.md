@@ -15,7 +15,7 @@
 
 ## Availability
 
-`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. Validators and predicates can be called directly without declaring a model column. Every refusal by a column helper throws a plain `Error` naming `<table>.<column>`; the `table` and `column` arguments are used only for these messages.
+`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. Validators and predicates can be called directly without declaring a model column. Errors created by the column helpers are plain `Error` objects naming `<table>.<column>`; the `table` and `column` arguments are used only for these messages. An exception thrown by a supplied JSON validator propagates unchanged.
 
 ## Availability definitions
 
