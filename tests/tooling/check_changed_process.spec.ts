@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from '@japa/runner'
-import { collectExit, isAlive, outputOf, waitForFile } from './child_process.js'
+import { collectExit, isAlive, outputOf, waitForFile, waitForPid } from './child_process.js'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -144,6 +144,29 @@ test('spawn failure rejects completion with the original error', async () => {
   await assert.rejects(collectExit(output), { code: 'ENOENT' })
 })
 
+test('PID readiness waits for a complete positive record', async ({ cleanup }) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-pid-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const pidFile = path.join(directory, 'descendant.pid')
+  await writeFile(pidFile, '')
+  const ready = waitForPid(pidFile)
+  await writeFile(pidFile, '12345')
+  assert.equal(await ready, 12345)
+  await writeFile(pidFile, 'invalid')
+  await assert.rejects(waitForPid(pidFile), /Invalid PID record/)
+})
+
+test('PID readiness stops when the worker exits before publication', async ({ cleanup }) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-early-exit-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const child = spawn(process.execPath, ['-e', ''], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const output = await outputOf(child)
+  await assert.rejects(
+    waitForPid(path.join(directory, 'missing.pid'), 5000, output.completion),
+    /exited before publishing a PID/
+  )
+})
+
 test('TERM-resistant descendants receive KILL, are reaped, and block later selected checks', async ({
   cleanup,
 }) => {
@@ -151,8 +174,7 @@ test('TERM-resistant descendants receive KILL, are reaped, and block later selec
   cleanup(() => rm(f.directory, { recursive: true, force: true }))
   const child = launch(f)
   const output = await outputOf(child)
-  await waitForFile(f.ready)
-  const descendantPid = Number(await readFile(f.ready, 'utf8'))
+  const descendantPid = await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)
@@ -169,8 +191,7 @@ test('a second signal escalates immediately while the first signal determines th
   cleanup(() => rm(f.directory, { recursive: true, force: true }))
   const child = launch(f)
   const output = await outputOf(child)
-  await waitForFile(f.ready)
-  const descendantPid = Number(await readFile(f.ready, 'utf8'))
+  const descendantPid = await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   await waitForFile(f.termSent)
   child.kill('SIGINT')
@@ -185,7 +206,7 @@ test('reports failed final reap and retains the first signal result', async ({ c
   cleanup(() => rm(f.directory, { recursive: true, force: true }))
   const child = launch(f)
   const output = await outputOf(child)
-  await waitForFile(f.ready)
+  await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)

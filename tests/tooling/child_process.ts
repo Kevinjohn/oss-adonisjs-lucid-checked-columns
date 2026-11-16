@@ -40,13 +40,57 @@ export async function isAlive(pid: number): Promise<boolean> {
   }
 }
 
-/** Poll for a file a child writes, such as a pid file. */
-export async function waitForFile(filePath: string, timeoutMs = 5000): Promise<string> {
+/** Wait for a complete positive PID before using it for process liveness or signals. */
+export async function waitForPid(
+  filePath: string,
+  timeoutMs = 5000,
+  completion?: ChildOutput['completion']
+): Promise<number> {
+  let stopped = false
+  const poll = async (): Promise<number> => {
+    const deadline = Date.now() + timeoutMs
+    while (!stopped && Date.now() < deadline) {
+      try {
+        const contents = await readFile(filePath, 'utf8')
+        if (/^[1-9]\d*\n?$/.test(contents)) {
+          const pid = Number(contents)
+          if (Number.isSafeInteger(pid)) return pid
+        } else if (contents.trim() !== '') {
+          throw new Error(`Invalid PID record in ${filePath}: ${JSON.stringify(contents)}`)
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    throw new Error(`Timed out waiting for a complete PID in ${filePath}`)
+  }
+  try {
+    return await Promise.race([
+      poll(),
+      ...(completion
+        ? [
+            completion.then((): never => {
+              throw new Error(`Child exited before publishing a PID in ${filePath}`)
+            }),
+          ]
+        : []),
+    ])
+  } finally {
+    stopped = true
+  }
+}
+
+/** Poll for a marker file written by a child. */
+export async function waitForFile(filePath: string, timeoutMs = 5000): Promise<void> {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     try {
-      return await readFile(filePath, 'utf8')
-    } catch {}
+      await readFile(filePath)
+      return
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
   throw new Error(`Timed out waiting for ${filePath}`)
