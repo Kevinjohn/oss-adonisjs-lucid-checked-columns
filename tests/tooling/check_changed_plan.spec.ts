@@ -73,7 +73,7 @@ test('deleted files select checks but are never passed to tools', ({ assert }) =
 })
 
 test('formats only existing files and leaves the lockfile to pnpm', ({ assert }) => {
-  const commands = ran(planChangedChecks(changed('README.md', 'pnpm-lock.yaml')))
+  const commands = ran(planChangedChecks(changed('README.md')))
 
   assert.deepEqual(commands.format.slice(-1), ['README.md'])
   assert.include(commands.format, '--ignore-unknown')
@@ -95,6 +95,13 @@ test('dash-prefixed root paths are passed literally to Prettier', ({ assert }) =
 test('formatter configuration checks the whole tree', ({ assert }) => {
   for (const path of ['.prettierignore', '.editorconfig', 'package.json'])
     assert.deepEqual(ran(planChangedChecks(changed(path))).format, ['pnpm', 'format:check'], path)
+})
+
+test('lockfile changes run the full formatter without passing the lockfile', ({ assert }) => {
+  assert.deepEqual(ran(planChangedChecks(changed('pnpm-lock.yaml'))).format, [
+    'pnpm',
+    'format:check',
+  ])
 })
 
 test('lint allows no warnings and skips files ESLint ignores', async ({ assert }) => {

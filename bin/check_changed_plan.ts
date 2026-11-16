@@ -30,6 +30,7 @@ const formatterInputs = [
   /^\.prettierignore$/,
   /^\.editorconfig$/,
   /^package\.json$/,
+  /^pnpm-lock\.yaml$/,
 ]
 
 const isSpec = (path: string) => /^tests\/.+\.spec\.ts$/.test(path)
