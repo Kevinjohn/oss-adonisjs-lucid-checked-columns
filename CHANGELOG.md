@@ -2,23 +2,26 @@
 
 ## Unreleased
 
-- Column hook types now preserve their value and return types with Lucid's optional context
-  arguments.
+## 0.2.0 - 2026-11-16
 
-- Sparse arrays and allowlists no longer validate absent elements.
-- Dynamic and partially typed `isOneOf` allowlists retain sound false-branch types while tuples of
-  exact literals keep their listed-value inference.
-
-- ISO predicates now retain sound false-branch types for mixed unions.
-
-- JSON column detection now survives Lucid's inherited-column cloning and separately evaluated
-  package copies.
-
-- Document Lucid's dirty-tracking limitation for top-level JSON objects with `isDirty: false`.
-- `jsonColumn` validates a written value's JSON encoding as well as the value, so `prepare` never
-  returns text that `consume` refuses (array holes, `NaN`, a shape-changing `toJSON`).
-- `jsonColumn` wraps an encoding error (a `BigInt` or a cycle) in
-  `Cannot encode JSON in <table>.<column>`, with the original as `cause`.
+- `jsonColumn` validates both a value and its JSON encoding. Under unchanged host validator rules,
+  the encoded value passes the same read-side validation; sparse arrays, `NaN`, and shape-changing
+  `toJSON` methods are rejected. Encoding errors such as `BigInt` and cycles are wrapped in
+  `Cannot encode JSON in <table>.<column>` with the original error as `cause`.
+- ISO predicates return distinct validated string subtypes and preserve sound false-branch types
+  for mixed unions. `isOneOf` keeps exact literal inference while supporting dynamic and partially
+  typed allowlists without unsound false-branch narrowing. Sparse arrays and allowlists reject
+  absent elements.
+- Lucid column hook types preserve value and return types with one- or three-argument hooks.
+  JSON column markers survive inherited-column cloning and separately evaluated package copies.
+- `check:changed` selects formatting, lint, type, test, and build checks from changed paths. It
+  counts executed tests, passes dash-prefixed formatter paths literally, and invalidates formatting
+  checks when formatter inputs change. Its process handling uses bounded deadline cleanup, framed
+  PID records, readiness checks, and complete child output; Git spawn, signal, and exit failures
+  retain their diagnostics.
+- Release readiness rejects an invalid SHA-256 checksum. Documentation now describes JSON text
+  storage, host validation and subtype limits, ISO year boundaries, and Lucid dirty-tracking and
+  query-builder limitations.
 
 ## 0.1.0 - 2026-11-13
 

@@ -1,7 +1,7 @@
 {
   "name": "@kevinjohn/adonisjs-lucid-checked-columns",
   "description": "Checked JSON, ISO date and ISO timestamp columns for AdonisJS Lucid models",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "node": ">=24.0.0"
   },
