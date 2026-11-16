@@ -14,6 +14,9 @@ Releases are GitHub release tarballs; the package is not on the npm registry.
 pnpm add https://github.com/Kevinjohn/oss-adonisjs-lucid-checked-columns/releases/download/v0.1.0/kevinjohn-adonisjs-lucid-checked-columns-0.1.0.tgz
 ```
 
+This command installs the published v0.1.0 archive. The API and error details below describe the
+current unreleased source and include guarantees that are not all available in v0.1.0.
+
 There is no provider and nothing to configure.
 
 ## Use
