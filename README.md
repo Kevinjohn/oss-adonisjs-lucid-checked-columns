@@ -67,8 +67,10 @@ The `table` and `column` arguments only name the column in error messages.
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
-literal tuples infer their listed values; a dynamic array validates membership without excluding
-its element type from the false branch.
+tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
+union-typed elements validate membership without excluding their element type from the false branch.
+Their validated value type is distinct, so validate a value before passing it to a column typed
+from such an allowlist.
 
 ## Errors
 
