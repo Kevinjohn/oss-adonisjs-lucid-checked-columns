@@ -110,7 +110,10 @@ function interrupt(signal: NodeJS.Signals): void {
     interruptedBy = signal
     const child = active
     interruptionCleanup = child ? terminateOwnedProcess(child) : Promise.resolve()
-    void interruptionCleanup.catch((error) => abandonActive?.(error))
+    void interruptionCleanup.then(
+      () => abandonActive?.(undefined),
+      (error) => abandonActive?.(error)
+    )
     return
   }
 
@@ -135,8 +138,18 @@ function misuse(message: string): never {
 
 function git(args: string[]): string {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
-  if (result.status !== 0) misuse(`git ${args.join(' ')} failed: ${result.stderr.trim()}`)
+  gitSpawnFailure(args, result)
+  if (result.status !== 0)
+    misuse(`git ${args.join(' ')} exited ${result.status}: ${result.stderr?.trim() || 'no stderr'}`)
   return result.stdout
+}
+
+function gitSpawnFailure(
+  args: string[],
+  result: { error?: Error; signal: NodeJS.Signals | null }
+): void {
+  if (result.error) misuse(`git ${args.join(' ')} failed to spawn: ${result.error.message}`)
+  if (result.signal) misuse(`git ${args.join(' ')} terminated by ${result.signal}`)
 }
 
 function changedFiles(base: string): ChangedFile[] {
@@ -171,11 +184,23 @@ function run(
     const timer = setTimeout(() => {
       timedOut = true
       output += `\n[check:changed] stopped after ${stepLimitMs / 60000} minutes\n`
-      try {
-        signalOwnedProcess(child, 'SIGKILL')
-      } catch (error) {
-        output += `[check:changed] timeout cleanup failed: ${describeError(error)}\n`
-      }
+      void (async () => {
+        const failures: unknown[] = []
+        try {
+          signalOwnedProcess(child, 'SIGKILL')
+        } catch (error) {
+          failures.push(error)
+        }
+        try {
+          if (!(await waitForOwnedProcessExit(child, reapGraceMs)))
+            failures.push(new Error('The owned process group did not exit after SIGKILL.'))
+        } catch (error) {
+          failures.push(error)
+        }
+        abandonActive?.(
+          failures.length ? new AggregateError(failures, 'Deadline cleanup failed.') : undefined
+        )
+      })()
     }, stepLimitMs)
     child.once('error', (error) => {
       spawnError = error
@@ -223,10 +248,10 @@ if (Number(process.versions.node.split('.')[0]) !== 24) {
   misuse(`Use Node 24 (found ${process.version}); run nvm use`)
 }
 const base = args[0] ?? 'origin/main'
-if (
-  spawnSync('git', ['rev-parse', '--verify', '--quiet', `${base}^{commit}`], { cwd: root }).status
-)
-  misuse(`Unknown base ref ${base}`)
+const preflightArgs = ['rev-parse', '--verify', '--quiet', `${base}^{commit}`]
+const preflight = spawnSync('git', preflightArgs, { cwd: root })
+gitSpawnFailure(preflightArgs, preflight)
+if (preflight.status !== 0) misuse(`Unknown base ref ${base}`)
 
 const changes = changedFiles(base)
 console.log(`[check:changed] ${changes.length} changed files since the merge-base with ${base}`)
