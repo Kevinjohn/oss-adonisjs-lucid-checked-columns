@@ -90,7 +90,7 @@ async function fixture(
 
   await writeFile(
     path.join(root, 'worker.js'),
-    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nif (process.env.CHECK_CHANGED_NO_READY !== '1') await writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
+    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nif (process.env.CHECK_CHANGED_NO_READY !== '1') await writeFile(${JSON.stringify(ready)}, String(process.pid) + '\\n')\nsetInterval(() => {}, 1000)\n`
   )
   if (options.command !== 'missing') {
     const commandPath = path.join(bin, 'pnpm')
@@ -218,7 +218,7 @@ test('PID readiness waits for a complete positive record', async ({ cleanup }) =
   const pidFile = path.join(directory, 'descendant.pid')
   await writeFile(pidFile, '')
   const ready = waitForPid(pidFile)
-  await writeFile(pidFile, '12345')
+  await writeFile(pidFile, '12345\n')
   assert.equal(await ready, 12345)
   await writeFile(pidFile, 'invalid')
   await assert.rejects(waitForPid(pidFile), /Invalid PID record/)
@@ -238,6 +238,18 @@ test('failed readiness reaps the owned command group before removing the fixture
     await cleanups[0]()
   }
 }).timeout(10_000)
+test('PID readiness rejects a numeric prefix until its record is terminated', async ({
+  cleanup,
+}) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-partial-pid-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const pidFile = path.join(directory, 'descendant.pid')
+  await writeFile(pidFile, '123')
+  await assert.rejects(waitForPid(pidFile, 100), /Timed out waiting for a complete PID/)
+  await writeFile(pidFile, '12345\n')
+  assert.equal(await waitForPid(pidFile), 12345)
+})
+
 test('PID readiness stops when the worker exits before publication', async ({ cleanup }) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-early-exit-'))
   cleanup(() => rm(directory, { recursive: true, force: true }))
