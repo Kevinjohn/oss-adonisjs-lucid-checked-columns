@@ -197,21 +197,23 @@ function run(
         } catch (error) {
           failures.push(error)
         }
-        abandonActive?.(
-          failures.length ? new AggregateError(failures, 'Deadline cleanup failed.') : undefined
-        )
+        if (active === child && !settled)
+          abandon(
+            failures.length ? new AggregateError(failures, 'Deadline cleanup failed.') : undefined
+          )
       })()
     }, stepLimitMs)
     child.once('error', (error) => {
       spawnError = error
     })
     let settled = false
-    abandonActive = (error) => {
+    const abandon = (error: unknown) => {
       child.stdout.destroy()
       child.stderr.destroy()
       child.unref()
       void finish(null, null, error)
     }
+    abandonActive = abandon
     const finish = async (
       status: number | null,
       signal: NodeJS.Signals | null,
@@ -229,7 +231,7 @@ function run(
         }
       }
       if (active === child) active = undefined
-      abandonActive = undefined
+      if (abandonActive === abandon) abandonActive = undefined
       if (spawnError) output += `\n[check:changed] spawn failed: ${spawnError.message}\n`
       if (cleanupError !== undefined) {
         output += `\n[check:changed] cleanup failed: ${describeError(cleanupError)}\n`
