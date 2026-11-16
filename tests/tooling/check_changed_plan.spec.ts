@@ -80,6 +80,18 @@ test('formats only existing files and leaves the lockfile to pnpm', ({ assert })
   assert.include(commands.format, '--no-error-on-unmatched-pattern')
 })
 
+test('dash-prefixed root paths are passed literally to Prettier', ({ assert }) => {
+  assert.deepEqual(ran(planChangedChecks(changed('-format-probe.md'))).format, [
+    'pnpm',
+    'exec',
+    'prettier',
+    '--check',
+    '--ignore-unknown',
+    '--no-error-on-unmatched-pattern',
+    './-format-probe.md',
+  ])
+})
+
 test('formatter configuration checks the whole tree', ({ assert }) => {
   for (const path of ['.prettierignore', '.editorconfig', 'package.json'])
     assert.deepEqual(ran(planChangedChecks(changed(path))).format, ['pnpm', 'format:check'], path)

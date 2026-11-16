@@ -55,7 +55,9 @@ export function planChangedChecks(
 ): PlannedCheckStep[] {
   const paths = changes.map((change) => change.path)
   const present = changes.filter((change) => !change.deleted).map((change) => change.path)
-  const formattable = present.filter((path) => path !== 'pnpm-lock.yaml')
+  const formattable = present
+    .filter((path) => path !== 'pnpm-lock.yaml')
+    .map((path) => (path.startsWith('-') ? `./${path}` : path))
   const specs = present.filter(isSpec)
   const suite = specs.length < changes.length
   const packageChanged = paths.some((path) => !outsidePackage(path))
