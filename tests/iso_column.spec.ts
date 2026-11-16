@@ -93,4 +93,18 @@ test.group('ISO predicates', () => {
       assert.isFalse(isIsoTimestamp(value), String(value))
     }
   })
+  test('both branches retain ordinary strings in mixed unions', ({ expectTypeOf }) => {
+    const date = 'invalid' as string | number
+    if (isIsoDate(date)) {
+      expectTypeOf(date).toExtend<string>()
+    } else {
+      expectTypeOf(date).toEqualTypeOf<string | number>()
+    }
+    const timestamp = 'invalid' as string | number
+    if (isIsoTimestamp(timestamp)) {
+      expectTypeOf(timestamp).toExtend<string>()
+    } else {
+      expectTypeOf(timestamp).toEqualTypeOf<string | number>()
+    }
+  })
 })

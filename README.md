@@ -66,6 +66,7 @@ The `table` and `column` arguments only name the column in error messages.
 
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
+The ISO predicates narrow successful values to distinct validated string types.
 
 ## Errors
 
