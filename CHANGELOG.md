@@ -3,9 +3,8 @@
 ## Unreleased
 
 - Sparse arrays and allowlists no longer validate absent elements.
-
-- Dynamic `isOneOf` allowlists retain sound false-branch types while literal tuples keep their
-  listed-value inference.
+- Dynamic and partially typed `isOneOf` allowlists retain sound false-branch types while tuples of
+  exact literals keep their listed-value inference.
 
 - ISO predicates now retain sound false-branch types for mixed unions.
 
