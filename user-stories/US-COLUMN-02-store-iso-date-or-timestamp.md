@@ -15,7 +15,7 @@ As an application developer, I want a date or timestamp property kept as one can
 | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `table`  | Argument 1     | Required string. Table name used only in error messages.                                                                                          |
 | `column` | Argument 2     | Required string. Column name used only in error messages.                                                                                         |
-| `T`      | Type parameter | Optional; defaults to `string`. Your TypeScript type extending `string`; it types the returned `prepare` and `consume` but adds no runtime check. |
+| `T`      | Type parameter | Optional; defaults to `string`. A host string subtype for the property; it is a compile-time assertion and adds no runtime check for rules beyond the helper's canonical ISO validation. |
 
 - `isoDateColumn` accepts only a real calendar date written `YYYY-MM-DD`; month lengths and leap years are checked without depending on the host time zone.
 - `isoTimestampColumn` accepts only a string `Date#toISOString()` produces: a UTC instant with three millisecond digits and a trailing `Z`.
