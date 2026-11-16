@@ -18,10 +18,13 @@ As an application developer, I want a model property stored as JSON and checked 
 | `validate` | Argument 3 | Required TypeScript type guard `(value: unknown) => value is T`. Use `isBoolean` for booleans, `isOneOf(values)` for listed strings or numbers, `isArrayOf(validate)` to apply another validator to every array element, or your own guard. |
 
 - On save, an accepted non-null value is written as `JSON.stringify(value)`. On read, every string is parsed with `JSON.parse`; a non-string value from the driver is validated as it is. `null` passes through both ways without validation.
+- The stored representation is JSON text, suitable for a text column. A decoded native scalar string is not supported: strings are always parsed as JSON, with no parse-error fallback. This value contract makes no claim about any database driver's return values.
 - On save, a non-null value must pass `validate` both before encoding and after its JSON text is parsed back, so whatever is written can be read back. If either check fails, the save throws `Invalid persisted JSON in <table>.<column>` and nothing is written.
 - After a value passes `validate`, an encoding that returns `undefined` (a function, for example) throws `Cannot persist undefined JSON in <table>.<column>`, and an encoding that throws (a `BigInt` or a cycle) throws `Cannot encode JSON in <table>.<column>` with the original error as `cause`.
 - On read, text that is not JSON, or a decoded value that fails `validate`, throws `Invalid persisted JSON in <table>.<column>`; the row does not hydrate.
 - The helper refuses an invalid value rather than repairing it; beyond JSON encoding on save and parsing on read, it changes nothing. Query-builder writes bypass it.
+
+- Lucid can skip an update before `prepare` runs when a top-level object value owns an `isDirty: false` property. Avoid that key for top-level object values in model saves; resolving arbitrary keys requires Lucid dirty-tracking changes.
 
 ## User flow
 
