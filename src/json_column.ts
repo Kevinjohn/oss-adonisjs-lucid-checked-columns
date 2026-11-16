@@ -7,7 +7,10 @@ export type JsonColumnOptions<T> = Pick<ColumnOptions, 'prepare' | 'consume' | '
 }
 
 /** Marks a column declared with `jsonColumn`, so the stored encoding can be read from the model. */
-const JSON_COLUMN = Object.freeze({ json: true })
+const JSON_COLUMN = Object.freeze({
+  json: true,
+  checkedColumns: '@kevinjohn/adonisjs-lucid-checked-columns/json',
+})
 
 /** A type guard for the value one JSON column may hold. */
 export type JsonValidator<T> = (value: unknown) => value is T
@@ -81,5 +84,5 @@ export function jsonColumn<T>(
 
 /** Whether a model column was declared with `jsonColumn`; pass `Model.$getColumn(name)`. */
 export function isJsonColumn(options: Pick<ColumnOptions, 'meta'> | undefined): boolean {
-  return options?.meta === JSON_COLUMN
+  return options?.meta?.checkedColumns === JSON_COLUMN.checkedColumns
 }
