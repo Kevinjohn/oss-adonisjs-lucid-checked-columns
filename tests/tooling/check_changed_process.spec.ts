@@ -143,6 +143,26 @@ async function fixture(
   }
 }
 
+const formatCommand =
+  'exec prettier --check --ignore-unknown --no-error-on-unmatched-pattern src-trigger.ts worker.js'
+
+async function assertOnlyFormatCommand(log: string): Promise<void> {
+  const contents = await readFile(log, 'utf8')
+  assert.deepEqual(contents.trimEnd().split('\n'), [formatCommand])
+}
+
+test('later lint and typecheck commands violate the cancellation assertion', async ({
+  cleanup,
+}) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-commands-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const log = path.join(directory, 'commands.log')
+  for (const command of ['lint', 'typecheck']) {
+    await writeFile(log, `${formatCommand}\n${command}\n`)
+    await assert.rejects(assertOnlyFormatCommand(log), { name: 'AssertionError' })
+  }
+})
+
 function launch(f: Fixture): ChildProcess {
   const child = spawn(
     process.execPath,
@@ -240,7 +260,7 @@ test('TERM-resistant descendants receive KILL, are reaped, and block later selec
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)
   assert.match(result.text, /fail format \(exit killed\)/)
-  assert.doesNotMatch(await readFile(f.log, 'utf8'), /pnpm lint|pnpm typecheck/)
+  await assertOnlyFormatCommand(f.log)
   assert.equal(await isAlive(descendantPid), false)
   assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(20_000)
@@ -258,7 +278,7 @@ test('a second signal escalates immediately while the first signal determines th
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)
   assert.equal(await isAlive(descendantPid), false)
-  assert.doesNotMatch(await readFile(f.log, 'utf8'), /pnpm lint|pnpm typecheck/)
+  await assertOnlyFormatCommand(f.log)
 }).timeout(15_000)
 
 test('reports failed final reap and retains the first signal result', async ({ cleanup }) => {
@@ -270,7 +290,7 @@ test('reports failed final reap and retains the first signal result', async ({ c
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)
   assert.match(result.text, /cleanup failed:.*did not exit after SIGKILL/s)
-  assert.doesNotMatch(await readFile(f.log, 'utf8'), /pnpm lint|pnpm typecheck/)
+  await assertOnlyFormatCommand(f.log)
   assert.doesNotMatch(result.text, /UnhandledPromiseRejection|unhandledRejection/)
 }).timeout(20_000)
 
