@@ -15,6 +15,8 @@ const plannerPath = path.join(repoRoot, 'bin/check_changed_plan.ts')
 type FixtureOptions = {
   command?: 'normal' | 'hang' | 'missing' | 'no-ready'
   hook?: 'record-term' | 'fail-reap'
+  gitMissing?: boolean
+  gitFailure?: 'exit' | 'signal'
 }
 
 type Fixture = {
@@ -72,7 +74,7 @@ async function fixture(
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')
 
   const git = execFileSync('which', ['git'], { encoding: 'utf8' }).trim()
-  await symlink(git, path.join(supportBin, 'git'))
+  if (!options.gitMissing) await symlink(git, path.join(supportBin, 'git'))
   const runGit = (args: string[]) => execFileSync(git, args, { cwd: root, stdio: 'ignore' })
   runGit(['init', '-q'])
   runGit(['config', 'user.email', 'fixture@example.test'])
@@ -83,6 +85,16 @@ async function fixture(
   await writeFile(path.join(root, 'src-trigger.ts'), 'export const changed = true\n')
   runGit(['add', 'src-trigger.ts'])
   runGit(['commit', '-qm', 'select static checks'])
+  if (options.gitFailure) {
+    await rm(path.join(supportBin, 'git'))
+    await writeFile(
+      path.join(supportBin, 'git'),
+      options.gitFailure === 'exit'
+        ? `#!/bin/sh\nif [ "$1" = "rev-parse" ]; then exec ${git} "$@"; fi\necho git-failure >&2\nexit 7\n`
+        : `#!/bin/sh\nif [ "$1" = "rev-parse" ]; then exec ${git} "$@"; fi\nkill -TERM $$\n`,
+      { mode: 0o755 }
+    )
+  }
   const log = path.join(directory, 'commands.log')
   const ready = path.join(directory, 'descendant.pid')
   const termSent = path.join(directory, 'term-sent')
@@ -172,6 +184,28 @@ function launch(f: Fixture): ChildProcess {
   f.child = child
   return child
 }
+
+test('reports a missing Git executable with its spawn error', async ({ cleanup }) => {
+  const f = await fixture(cleanup, { gitMissing: true })
+  const output = await outputOf(launch(f))
+  const result = await collectExit(output)
+  assert.equal(result.code, 2, result.text)
+  assert.match(result.text, /git rev-parse .* failed to spawn: spawnSync git ENOENT/)
+  assert.doesNotMatch(result.text, /TypeError|Unknown base ref/)
+})
+
+test('reports Git command exit and signal failures distinctly', async ({ cleanup }) => {
+  for (const [failure, expected] of [
+    ['exit', /git merge-base .* exited 7: git-failure/],
+    ['signal', /git merge-base .* terminated by SIGTERM/],
+  ] as const) {
+    const f = await fixture(cleanup, { gitFailure: failure })
+    const result = await collectExit(await outputOf(launch(f)))
+    assert.equal(result.code, 2, result.text)
+    assert.match(result.text, expected)
+    assert.doesNotMatch(result.text, /TypeError/)
+  }
+})
 
 test('runs selected static checks normally and observes a missing command spawn error', async ({
   cleanup,
