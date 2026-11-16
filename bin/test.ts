@@ -10,9 +10,13 @@ configure({
   // Japa exits 0 when its filters select nothing; a gate that ran no tests checked nothing.
   teardown: [
     (runner) => {
-      if (runner.getSummary().aggregates.total > 0) return
-      console.error('No tests executed: check the --files, --tests and --groups filters')
-      process.exitCode = 1
+      const { passed, failed, regression } = runner.getSummary().aggregates
+      const executed = passed + failed + regression
+      console.log(`Executed tests: ${executed}`)
+      if (executed === 0) {
+        console.error('No tests executed: check the --files, --tests and --groups filters')
+        process.exitCode = 1
+      }
     },
   ],
 })
