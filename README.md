@@ -14,6 +14,9 @@ Releases are GitHub release tarballs; the package is not on the npm registry.
 pnpm add https://github.com/Kevinjohn/oss-adonisjs-lucid-checked-columns/releases/download/v0.1.0/kevinjohn-adonisjs-lucid-checked-columns-0.1.0.tgz
 ```
 
+This command installs the published v0.1.0 archive. The API and error details below describe the
+current unreleased source and include guarantees that are not all available in v0.1.0.
+
 There is no provider and nothing to configure.
 
 ## Use
@@ -64,8 +67,36 @@ The `table` and `column` arguments only name the column in error messages.
 | `isoTimestampColumn(table, column)`         | Keeps a UTC instant exactly as `Date#toISOString()` writes it (three millisecond digits, trailing `Z`) unchanged; refuses anything else.               |
 | `isIsoDate(value)`, `isIsoTimestamp(value)` | The predicates the two ISO helpers use.                                                                                                                |
 
+`jsonColumn` stores JSON text, so use a text column for this representation. On read, every string
+is parsed as JSON before validation. A decoded native scalar string is ambiguous with encoded JSON
+text: for example, the string `true` parses as the boolean `true`, while `red` is not valid JSON.
+Decoded scalar strings from native JSON columns are not a supported representation; the helper does
+not fall back to treating unparseable text as a decoded string. This documents the helper's value
+contract and does not establish behavior for a particular database driver.
+
+On write, the value and its JSON encoding are both checked. The encoded text passes read-side
+validation under unchanged host validation rules; the read side continues to validate each value.
+
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
+The generic is a compile-time assertion: the helpers still check canonical ISO syntax, but cannot
+prove additional rules encoded in a host subtype. For example, the host must check a business cutoff
+before assigning a branded type:
+
+```ts
+type PostLaunchDate = string & { readonly __brand: 'PostLaunchDate' }
+
+@column(isoDateColumn<PostLaunchDate>('heroes', 'launched_on'))
+declare launchedOn: PostLaunchDate
+```
+
+`isoDateColumn` checks that the value is a real `YYYY-MM-DD` date; it does not check that it is after
+the host's launch date.
+The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
+tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
+union-typed elements validate membership without excluding their element type from the false branch.
+Their validated value type is distinct, so validate a value before passing it to a column typed
+from such an allowlist.
 
 ## Errors
 
@@ -87,6 +118,10 @@ Each refusal throws a plain `Error`:
   with an offset is refused by the ISO helpers.
 - Lucid runs `prepare` and `consume` for model reads and writes only. Query-builder writes bypass
   them.
+- Lucid's dirty tracking can miss a changed top-level JSON object when that object has its own
+  `isDirty: false` property. A model save can then skip the update before `prepare` runs. Avoid
+  that property name for top-level object values when using model saves; arbitrary object keys
+  require a fix in Lucid's dirty tracking.
 
 ## Development
 
