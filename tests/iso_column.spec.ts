@@ -1,4 +1,6 @@
 import { test } from '@japa/runner'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
+import type { LucidRow } from '@adonisjs/lucid/types/model'
 import { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
 
 test.group('isoDateColumn', () => {
@@ -91,6 +93,40 @@ test.group('ISO predicates', () => {
     assert.isTrue(isIsoTimestamp('2026-07-18T10:00:00.000Z'))
     for (const value of ['2026-07-18T10:00:00.00Z', '2026-02-30T10:00:00.000Z', '', null, 0]) {
       assert.isFalse(isIsoTimestamp(value), String(value))
+    }
+  })
+  test('both branches retain ordinary strings in mixed unions', ({ expectTypeOf }) => {
+    const date = 'invalid' as string | number
+    if (isIsoDate(date)) {
+      expectTypeOf(date).toExtend<string>()
+    } else {
+      expectTypeOf(date).toEqualTypeOf<string | number>()
+    }
+    const timestamp = 'invalid' as string | number
+    if (isIsoTimestamp(timestamp)) {
+      expectTypeOf(timestamp).toExtend<string>()
+    } else {
+      expectTypeOf(timestamp).toEqualTypeOf<string | number>()
+    }
+  })
+  test('hook types reject invalid values with Lucid context', ({ expectTypeOf }) => {
+    const date = isoDateColumn('missions', 'starts_on')
+    class Mission extends BaseModel {
+      @column(date)
+      declare startsOn: string | null
+    }
+    expectTypeOf(Mission).toExtend<typeof BaseModel>()
+    expectTypeOf(date.prepare).parameters.toEqualTypeOf<
+      [value: string | null, attribute?: string, model?: LucidRow]
+    >()
+    expectTypeOf(date.consume).returns.toEqualTypeOf<string | null>()
+    expectTypeOf(date.prepare('2026-01-01')).toEqualTypeOf<string | null>()
+    expectTypeOf(date.prepare('2026-01-01', 'startsOn', new Mission())).toEqualTypeOf<
+      string | null
+    >()
+    if (process.env.TYPECHECK_ONLY) {
+      // @ts-expect-error date values cannot be numbers with context
+      date.prepare(42, 'startsOn', new Mission())
     }
   })
 })
