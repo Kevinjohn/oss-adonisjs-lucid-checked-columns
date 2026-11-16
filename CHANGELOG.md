@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Sparse arrays and allowlists no longer validate absent elements.
 - Dynamic and partially typed `isOneOf` allowlists retain sound false-branch types while tuples of
   exact literals keep their listed-value inference.
 

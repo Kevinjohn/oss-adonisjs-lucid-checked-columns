@@ -41,14 +41,25 @@ export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
 ): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
-  return ((value: unknown) => values.includes(value as V[number])) as JsonValidator<
-    IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>
-  >
+  return ((value: unknown) => {
+    for (let index = 0; index < values.length; index++) {
+      if (!Object.hasOwn(values, index)) continue
+      const entry = values[index]
+      if (entry === value || (Number.isNaN(entry) && Number.isNaN(value))) return true
+    }
+    return false
+  }) as JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>>
 }
 
 /** Accepts an array whose every element passes `validate`. */
 export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<T[]> {
-  return (value): value is T[] => Array.isArray(value) && value.every(validate)
+  return (value): value is T[] => {
+    if (!Array.isArray(value)) return false
+    for (let index = 0; index < value.length; index++) {
+      if (!Object.hasOwn(value, index) || !validate(value[index])) return false
+    }
+    return true
+  }
 }
 
 /**
