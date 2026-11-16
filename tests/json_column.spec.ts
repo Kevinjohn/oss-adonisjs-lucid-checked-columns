@@ -52,7 +52,7 @@ test.group('jsonColumn', () => {
     const limits = jsonColumn('heroes', 'limits', isArrayOf(isOneOf([Number.NaN, Infinity])))
     // isOneOf matches NaN (Array.includes uses SameValueZero); both encode as null.
     assert.throws(
-      () => limits.prepare([Number.NaN, Infinity]),
+      () => limits.prepare([Number.NaN, Infinity] as never),
       'Invalid persisted JSON in heroes.limits'
     )
 
@@ -210,6 +210,37 @@ test.group('validators', () => {
     assert.isFalse(isWeekStart('0'))
     const value: unknown = 1
     if (isWeekStart(value)) expectTypeOf(value).toEqualTypeOf<0 | 1>()
+  })
+
+  test('dynamic and partial allowlists preserve possible values in the false branch', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    const isDynamic = isOneOf(['a', 'b'] as ('a' | 'b')[])
+    const value = 'c' as 'a' | 'b' | 'c' | number
+    if (isDynamic(value)) {
+      expectTypeOf(value).toExtend<'a' | 'b'>()
+    } else {
+      expectTypeOf(value).toEqualTypeOf<'a' | 'b' | 'c' | number>()
+    }
+    const broadTuple: readonly [string] = ['red']
+    const isBroadTuple = isOneOf(broadTuple)
+    assert.isFalse(isBroadTuple('blue'))
+    const mixed = 'blue' as string | number
+    if (isBroadTuple(mixed)) {
+      expectTypeOf(mixed).toExtend<string>()
+    } else {
+      expectTypeOf(mixed).toEqualTypeOf<string | number>()
+    }
+    const partialTuple: readonly ['red' | 'blue'] = ['red']
+    const isPartialTuple = isOneOf(partialTuple)
+    assert.isFalse(isPartialTuple('blue'))
+    const color = 'blue' as 'red' | 'blue' | number
+    if (isPartialTuple(color)) {
+      expectTypeOf(color).toExtend<'red' | 'blue'>()
+    } else {
+      expectTypeOf(color).toEqualTypeOf<'red' | 'blue' | number>()
+    }
   })
 
   test('isArrayOf accepts only arrays whose every element is valid', ({ assert }) => {
