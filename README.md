@@ -135,8 +135,8 @@ pnpm build
 
 `pnpm check:changed [--static] [base]` selects checks for files changed since `base` (default
 `origin/main`). It formats changed files, runs lint and typecheck for relevant inputs, and runs
-changed specs when the diff contains only specs; any other changed path selects the full test suite.
-It builds when a changed path is outside `tests/`, `.github/`, or a root-level Markdown file, so
+changed specs only when every changed path is a present spec; otherwise it selects the full test
+suite. It builds when a changed path is outside `tests/`, `.github/`, or a root-level Markdown file, so
 nested documentation such as user stories currently selects a build. Formatter configuration,
 `package.json`, and `pnpm-lock.yaml` changes select the full format check. `--static` skips the full
 suite and build while still running specs changed in the diff.
