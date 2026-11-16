@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Document Lucid's dirty-tracking limitation for top-level JSON objects with `isDirty: false`.
 - `jsonColumn` validates a written value's JSON encoding as well as the value, so `prepare` never
   returns text that `consume` refuses (array holes, `NaN`, a shape-changing `toJSON`).
 - `jsonColumn` wraps an encoding error (a `BigInt` or a cycle) in
