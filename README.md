@@ -79,6 +79,20 @@ validation under unchanged host validation rules; the read side continues to val
 
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
+The generic is a compile-time assertion: the helpers still check canonical ISO syntax, but cannot
+prove additional rules encoded in a host subtype. For example, the host must check a business cutoff
+before assigning a branded type:
+
+```ts
+type PostLaunchDate = string & { readonly __brand: 'PostLaunchDate' }
+
+@column(isoDateColumn<PostLaunchDate>('heroes', 'launched_on'))
+declare launchedOn: PostLaunchDate
+```
+
+`isoDateColumn` checks that the value is a real `YYYY-MM-DD` date; it does not check that it is after
+the host's launch date. The shown declaration asserts that host-specific cutoff; it does not enforce
+it. Host code must enforce any stronger rule on values before writing and after reading them.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
 tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
 union-typed elements validate membership without excluding their element type from the false branch.
