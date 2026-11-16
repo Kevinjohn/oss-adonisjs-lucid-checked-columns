@@ -14,6 +14,21 @@ const JSON_COLUMN = Object.freeze({
 
 declare const listedValue: unique symbol
 type ListedValue<T> = T & { readonly [listedValue]: true }
+type IsUnion<T, C = T> = T extends C ? ([C] extends [T] ? false : true) : never
+type IsLiteralTuple<V extends readonly (string | number)[]> = number extends V['length']
+  ? false
+  : V extends readonly [
+        infer Head extends string | number,
+        ...infer Tail extends (string | number)[],
+      ]
+    ? string extends Head
+      ? false
+      : number extends Head
+        ? false
+        : IsUnion<Head> extends true
+          ? false
+          : IsLiteralTuple<Tail>
+    : true
 
 /** A type guard for the value one JSON column may hold. */
 export type JsonValidator<T> = (value: unknown) => value is T
@@ -25,9 +40,9 @@ export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
 /** Accepts exactly the listed strings or numbers. */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
-): JsonValidator<number extends V['length'] ? ListedValue<V[number]> : V[number]> {
+): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
   return ((value: unknown) => values.includes(value as V[number])) as JsonValidator<
-    number extends V['length'] ? ListedValue<V[number]> : V[number]
+    IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>
   >
 }
 
