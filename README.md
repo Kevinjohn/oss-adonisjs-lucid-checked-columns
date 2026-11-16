@@ -56,16 +56,16 @@ The `table` and `column` arguments only name the column in error messages.
 
 ## API
 
-| Export                                      | Behaviour                                                                                                                                              |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `jsonColumn(table, column, validate)`       | Writes `JSON.stringify(value)`; reads with `JSON.parse` when the driver returns text. `null` passes through. The value must pass `validate` both ways. |
-| `isBoolean`                                 | Validator: `true` or `false`.                                                                                                                          |
-| `isOneOf(values)`                           | Validator: exactly one of the listed strings or numbers.                                                                                               |
-| `isArrayOf(validate)`                       | Validator: an array whose every element passes `validate`.                                                                                             |
-| `isJsonColumn(options)`                     | Whether a column was declared with `jsonColumn`. Pass `Model.$getColumn(name)`; use it to find the JSON columns when writing rows outside the model.   |
-| `isoDateColumn(table, column)`              | Keeps a real calendar date written `YYYY-MM-DD` in years `0001`–`9999` unchanged; refuses anything else. `null` passes through.                       |
+| Export                                      | Behaviour                                                                                                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsonColumn(table, column, validate)`       | Writes `JSON.stringify(value)`; reads with `JSON.parse` when the driver returns text. `null` passes through. The value must pass `validate` both ways.                                                  |
+| `isBoolean`                                 | Validator: `true` or `false`.                                                                                                                                                                           |
+| `isOneOf(values)`                           | Validator: exactly one of the listed strings or numbers.                                                                                                                                                |
+| `isArrayOf(validate)`                       | Validator: an array whose every element passes `validate`.                                                                                                                                              |
+| `isJsonColumn(options)`                     | Whether a column was declared with `jsonColumn`. Pass `Model.$getColumn(name)`; use it to find the JSON columns when writing rows outside the model.                                                    |
+| `isoDateColumn(table, column)`              | Keeps a real calendar date written `YYYY-MM-DD` in years `0001`–`9999` unchanged; refuses anything else. `null` passes through.                                                                         |
 | `isoTimestampColumn(table, column)`         | Keeps a UTC instant exactly as `Date#toISOString()` writes it (three millisecond digits, trailing `Z`), including its signed six-digit extended-year form outside `0000`–`9999`; refuses anything else. |
-| `isIsoDate(value)`, `isIsoTimestamp(value)` | The predicates the two ISO helpers use.                                                                                                                |
+| `isIsoDate(value)`, `isIsoTimestamp(value)` | The predicates the two ISO helpers use.                                                                                                                                                                 |
 
 `jsonColumn` stores JSON text, so use a text column for this representation. On read, every string
 is parsed as JSON before validation. A decoded native scalar string is ambiguous with encoded JSON
