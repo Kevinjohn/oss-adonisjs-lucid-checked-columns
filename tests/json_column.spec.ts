@@ -228,6 +228,16 @@ test.group('validators', () => {
     assert.isTrue(isFlags([true, false]))
     assert.isFalse(isFlags([true, 'false']))
     assert.isFalse(isFlags('[true]'))
+    assert.isFalse(isFlags(Array(1)))
+    assert.throws(
+      () => jsonColumn('heroes', 'flags', isFlags).consume(Array(1)),
+      'Invalid persisted JSON in heroes.flags'
+    )
+  })
+  test('a sparse allowlist cannot match undefined', ({ assert }) => {
+    const values = Array(1) as string[]
+    const accepts = isOneOf(values)
+    assert.isFalse(accepts(undefined))
   })
 })
 
