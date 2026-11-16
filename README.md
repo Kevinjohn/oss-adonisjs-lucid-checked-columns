@@ -74,6 +74,9 @@ Decoded scalar strings from native JSON columns are not a supported representati
 not fall back to treating unparseable text as a decoded string. This documents the helper's value
 contract and does not establish behavior for a particular database driver.
 
+On write, the value and its JSON encoding are both checked. The encoded text passes read-side
+validation under unchanged host validation rules; the read side continues to validate each value.
+
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
