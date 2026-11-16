@@ -13,7 +13,7 @@ const runnerPath = path.join(repoRoot, 'bin/check_changed.ts')
 const plannerPath = path.join(repoRoot, 'bin/check_changed_plan.ts')
 
 type FixtureOptions = {
-  command?: 'normal' | 'hang' | 'missing'
+  command?: 'normal' | 'hang' | 'missing' | 'no-ready'
   hook?: 'record-term' | 'fail-reap'
 }
 
@@ -26,10 +26,39 @@ type Fixture = {
   termSent: string
   base: string
   env: NodeJS.ProcessEnv
+  child?: ChildProcess
 }
 
-async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
+async function fixture(
+  registerCleanup: (callback: () => Promise<void>) => void,
+  options: FixtureOptions = {}
+): Promise<Fixture> {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'lucid-checked-columns-check-changed-'))
+  const commandPid = path.join(directory, 'command.pid')
+  const owned: { child?: ChildProcess } = {}
+  registerCleanup(async () => {
+    try {
+      const pid = await waitForPid(commandPid, 1)
+      try {
+        process.kill(-pid, 'SIGKILL')
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error
+      }
+    } catch (error) {
+      if (!(error instanceof Error && error.message.startsWith('Timed out waiting'))) throw error
+    }
+    const child = owned.child
+    if (child && child.exitCode === null && child.signalCode === null) {
+      const closed = new Promise<void>((resolve) => child.once('close', () => resolve()))
+      child.kill('SIGKILL')
+      child.stdout?.destroy()
+      child.stderr?.destroy()
+      await closed
+    }
+    child?.stdout?.destroy()
+    child?.stderr?.destroy()
+    await rm(directory, { recursive: true, force: true })
+  })
   const root = path.join(directory, 'checkout')
   const bin = path.join(directory, 'bin')
   const supportBin = path.join(directory, 'support-bin')
@@ -61,13 +90,13 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
 
   await writeFile(
     path.join(root, 'worker.js'),
-    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nawait writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
+    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nif (process.env.CHECK_CHANGED_NO_READY !== '1') await writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
   )
   if (options.command !== 'missing') {
     const commandPath = path.join(bin, 'pnpm')
     await writeFile(
       commandPath,
-      `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nconst args = process.argv.slice(2)\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\n`,
+      `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nimport { writeFileSync } from 'node:fs'\nwriteFileSync(${JSON.stringify(commandPid)}, String(process.pid))\nconst args = process.argv.slice(2)\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\n`,
       { mode: 0o755 }
     )
   }
@@ -88,26 +117,46 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
   }
   delete env.CHECK_CHANGED_HANG
   if (options.command === 'hang') env.CHECK_CHANGED_HANG = '1'
+  if (options.command === 'no-ready') {
+    env.CHECK_CHANGED_HANG = '1'
+    env.CHECK_CHANGED_NO_READY = '1'
+  }
   if (options.hook) {
     env.NODE_OPTIONS =
       `${env.NODE_OPTIONS ?? ''} --require=${path.join(directory, 'process-hook.cjs')}`.trim()
   }
-  return { directory, root, bin, log, ready, termSent, base, env }
+  return {
+    directory,
+    root,
+    bin,
+    log,
+    ready,
+    termSent,
+    base,
+    env,
+    get child() {
+      return owned.child
+    },
+    set child(value) {
+      owned.child = value
+    },
+  }
 }
 
 function launch(f: Fixture): ChildProcess {
-  return spawn(
+  const child = spawn(
     process.execPath,
     ['--import=@poppinss/ts-exec', path.join(f.root, 'bin/check_changed.ts'), '--static', f.base],
     { cwd: f.root, env: f.env, stdio: ['ignore', 'pipe', 'pipe'] }
   )
+  f.child = child
+  return child
 }
 
 test('runs selected static checks normally and observes a missing command spawn error', async ({
   cleanup,
 }) => {
-  const normal = await fixture()
-  cleanup(() => rm(normal.directory, { recursive: true, force: true }))
+  const normal = await fixture(cleanup)
   const normalChild = launch(normal)
   const normalOutput = await outputOf(normalChild)
   const normalResult = await collectExit(normalOutput)
@@ -115,8 +164,7 @@ test('runs selected static checks normally and observes a missing command spawn 
   assert.match(normalResult.text, /pass format/)
   assert.match(await readFile(normal.log, 'utf8'), /exec prettier --check/)
 
-  const missing = await fixture({ command: 'missing' })
-  cleanup(() => rm(missing.directory, { recursive: true, force: true }))
+  const missing = await fixture(cleanup, { command: 'missing' })
   const missingChild = launch(missing)
   const missingOutput = await outputOf(missingChild)
   const missingResult = await collectExit(missingOutput)
@@ -156,11 +204,25 @@ test('PID readiness waits for a complete positive record', async ({ cleanup }) =
   await assert.rejects(waitForPid(pidFile), /Invalid PID record/)
 })
 
+test('failed readiness reaps the owned command group before removing the fixture', async () => {
+  const cleanups: Array<() => Promise<void>> = []
+  const f = await fixture((callback) => cleanups.push(callback), { command: 'no-ready' })
+  try {
+    launch(f)
+    const commandPid = await waitForPid(path.join(f.directory, 'command.pid'))
+    await assert.rejects(waitForPid(f.ready, 100), /Timed out waiting/)
+    await cleanups[0]()
+    assert.equal(await isAlive(commandPid), false)
+    await assert.rejects(readFile(f.directory), { code: 'ENOENT' })
+  } finally {
+    await cleanups[0]()
+  }
+}).timeout(10_000)
+
 test('TERM-resistant descendants receive KILL, are reaped, and block later selected checks', async ({
   cleanup,
 }) => {
-  const f = await fixture({ command: 'hang' })
-  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const f = await fixture(cleanup, { command: 'hang' })
   const child = launch(f)
   const output = await outputOf(child)
   const descendantPid = await waitForPid(f.ready)
@@ -176,8 +238,7 @@ test('TERM-resistant descendants receive KILL, are reaped, and block later selec
 test('a second signal escalates immediately while the first signal determines the exit code', async ({
   cleanup,
 }) => {
-  const f = await fixture({ command: 'hang', hook: 'record-term' })
-  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const f = await fixture(cleanup, { command: 'hang', hook: 'record-term' })
   const child = launch(f)
   const output = await outputOf(child)
   const descendantPid = await waitForPid(f.ready)
@@ -191,8 +252,7 @@ test('a second signal escalates immediately while the first signal determines th
 }).timeout(15_000)
 
 test('reports failed final reap and retains the first signal result', async ({ cleanup }) => {
-  const f = await fixture({ command: 'hang', hook: 'fail-reap' })
-  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const f = await fixture(cleanup, { command: 'hang', hook: 'fail-reap' })
   const child = launch(f)
   const output = await outputOf(child)
   await waitForPid(f.ready)
@@ -207,8 +267,7 @@ test('reports failed final reap and retains the first signal result', async ({ c
 test('interrupt settles a never-closing owned child and releases its live local handles', async ({
   cleanup,
 }) => {
-  const f = await fixture()
-  cleanup(() => rm(f.directory, { recursive: true, force: true }))
+  const f = await fixture(cleanup)
   const hook = path.join(f.directory, 'never-close.cjs')
   await writeFile(
     hook,
