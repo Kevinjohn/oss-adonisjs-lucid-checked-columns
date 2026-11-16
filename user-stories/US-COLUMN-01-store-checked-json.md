@@ -23,6 +23,8 @@ As an application developer, I want a model property stored as JSON and checked 
 - On read, text that is not JSON, or a decoded value that fails `validate`, throws `Invalid persisted JSON in <table>.<column>`; the row does not hydrate.
 - The helper refuses an invalid value rather than repairing it; beyond JSON encoding on save and parsing on read, it changes nothing. Query-builder writes bypass it.
 
+- Lucid can skip an update before `prepare` runs when a top-level object value owns an `isDirty: false` property. Avoid that key for top-level object values in model saves; resolving arbitrary keys requires Lucid dirty-tracking changes.
+
 ## User flow
 
 ```mermaid

@@ -87,6 +87,10 @@ Each refusal throws a plain `Error`:
   with an offset is refused by the ISO helpers.
 - Lucid runs `prepare` and `consume` for model reads and writes only. Query-builder writes bypass
   them.
+- Lucid's dirty tracking can miss a changed top-level JSON object when that object has its own
+  `isDirty: false` property. A model save can then skip the update before `prepare` runs. Avoid
+  that property name for top-level object values when using model saves; arbitrary object keys
+  require a fix in Lucid's dirty tracking.
 
 ## Development
 

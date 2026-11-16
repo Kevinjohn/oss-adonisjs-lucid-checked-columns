@@ -151,6 +151,46 @@ test.group('jsonColumn on a Lucid model', () => {
       )
     }
   })
+  test('Lucid skips a changed object when its own isDirty is false', async ({ assert }) => {
+    const rows = new Map<number, Record<string, unknown>>()
+    class RecordModel extends BaseModel {
+      @column({ isPrimary: true })
+      declare id: number
+
+      @column(
+        jsonColumn(
+          'records',
+          'payload',
+          (value): value is { isDirty: boolean; name: string } =>
+            typeof value === 'object' &&
+            value !== null &&
+            typeof (value as { isDirty?: unknown }).isDirty === 'boolean' &&
+            typeof (value as { name?: unknown }).name === 'string'
+        )
+      )
+      declare payload: { isDirty: boolean; name: string }
+    }
+    RecordModel.boot()
+    let updates = 0
+    RecordModel.useAdapter({
+      async insert(instance, attributes) {
+        rows.set(1, { ...attributes, id: 1 })
+        instance.$consumeAdapterResult({ id: 1 })
+      },
+      async update(_instance, attributes) {
+        updates++
+        rows.set(1, { ...rows.get(1), ...attributes })
+      },
+    } as Parameters<typeof RecordModel.useAdapter>[0])
+    const record = new RecordModel()
+    record.payload = { isDirty: true, name: 'before' }
+    await record.save()
+    const fetched = RecordModel.$createFromAdapterResult(rows.get(1))!
+    fetched.payload = { isDirty: false, name: 'after' }
+    await fetched.save()
+    assert.equal(updates, 0)
+    assert.deepEqual(rows.get(1), { id: 1, payload: '{"isDirty":true,"name":"before"}' })
+  })
 })
 
 test.group('validators', () => {
