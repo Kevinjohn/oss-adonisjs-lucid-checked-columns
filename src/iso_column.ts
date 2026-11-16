@@ -1,9 +1,9 @@
-import type { ColumnOptions } from '@adonisjs/lucid/types/model'
+import type { LucidRow } from '@adonisjs/lucid/types/model'
 
 /** Column options returned by the ISO helpers; pass them to Lucid's `@column` decorator. */
-export type IsoColumnOptions<T extends string> = Pick<ColumnOptions, 'prepare' | 'consume'> & {
-  prepare(value: T | null): T | null
-  consume(value: unknown): T | null
+export type IsoColumnOptions<T extends string> = {
+  prepare(value: T | null, attribute?: string, model?: LucidRow): T | null
+  consume(value: unknown, attribute?: string, model?: LucidRow): T | null
 }
 
 declare const isoDateBrand: unique symbol

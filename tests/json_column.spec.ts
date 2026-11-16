@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import type { LucidRow } from '@adonisjs/lucid/types/model'
 import { isArrayOf, isBoolean, isJsonColumn, isOneOf, jsonColumn } from '../index.js'
 
 test.group('jsonColumn', () => {
@@ -210,6 +211,28 @@ test.group('validators', () => {
     assert.isFalse(isWeekStart('0'))
     const value: unknown = 1
     if (isWeekStart(value)) expectTypeOf(value).toEqualTypeOf<0 | 1>()
+  })
+
+  test('hook types reject invalid writes with or without Lucid context', ({ expectTypeOf }) => {
+    const options = jsonColumn('heroes', 'active', isBoolean)
+    expectTypeOf(options.prepare).parameters.toEqualTypeOf<
+      [value: boolean | null, attribute?: string, model?: LucidRow]
+    >()
+    expectTypeOf(options.consume).returns.toEqualTypeOf<boolean | null>()
+    expectTypeOf(options.prepare(true)).toEqualTypeOf<string | null>()
+    expectTypeOf(options.prepare(true, 'active', new (class extends BaseModel {})())).toEqualTypeOf<
+      string | null
+    >()
+    expectTypeOf(options.consume(true)).toEqualTypeOf<boolean | null>()
+    expectTypeOf(options.consume(true, 'active', new (class extends BaseModel {})())).toEqualTypeOf<
+      boolean | null
+    >()
+    if (process.env.TYPECHECK_ONLY) {
+      // @ts-expect-error invalid value stays invalid with Lucid context
+      options.prepare('yes', 'active', new (class extends BaseModel {})())
+      // @ts-expect-error invalid value stays invalid without context
+      options.prepare('yes')
+    }
   })
 
   test('dynamic and partial allowlists preserve possible values in the false branch', ({
