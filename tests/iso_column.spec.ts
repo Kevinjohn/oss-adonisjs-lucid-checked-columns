@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import type { LucidRow } from '@adonisjs/lucid/types/model'
 import { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
 
 test.group('isoDateColumn', () => {
@@ -116,14 +117,16 @@ test.group('ISO predicates', () => {
     }
     expectTypeOf(Mission).toExtend<typeof BaseModel>()
     expectTypeOf(date.prepare).parameters.toEqualTypeOf<
-      [value: string | null, model?: unknown, column?: unknown]
+      [value: string | null, attribute?: string, model?: LucidRow]
     >()
     expectTypeOf(date.consume).returns.toEqualTypeOf<string | null>()
     expectTypeOf(date.prepare('2026-01-01')).toEqualTypeOf<string | null>()
-    expectTypeOf(date.prepare('2026-01-01', {}, {})).toEqualTypeOf<string | null>()
+    expectTypeOf(date.prepare('2026-01-01', 'startsOn', new Mission())).toEqualTypeOf<
+      string | null
+    >()
     if (process.env.TYPECHECK_ONLY) {
       // @ts-expect-error date values cannot be numbers with context
-      date.prepare(42, {}, {})
+      date.prepare(42, 'startsOn', new Mission())
     }
   })
 })

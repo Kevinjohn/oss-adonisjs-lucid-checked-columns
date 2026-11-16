@@ -1,9 +1,9 @@
-import type { ColumnOptions } from '@adonisjs/lucid/types/model'
+import type { ColumnOptions, LucidRow } from '@adonisjs/lucid/types/model'
 
 /** Column options returned by `jsonColumn`; pass them to Lucid's `@column` decorator. */
 export type JsonColumnOptions<T> = Pick<ColumnOptions, 'meta'> & {
-  prepare(value: T | null, model?: unknown, column?: unknown): string | null
-  consume(value: unknown, model?: unknown, column?: unknown): T | null
+  prepare(value: T | null, attribute?: string, model?: LucidRow): string | null
+  consume(value: unknown, attribute?: string, model?: LucidRow): T | null
 }
 
 /** Marks a column declared with `jsonColumn`, so the stored encoding can be read from the model. */
