@@ -128,12 +128,10 @@ export function planChangedChecks(
   ]
 }
 
-/** Count the tests a Japa run executed from its summary line; 0 when none ran. */
+/** Read the final executed-test marker emitted by the Japa teardown; 0 when none ran. */
 export function executedTests(output: string): number {
-  // eslint-disable-next-line no-control-regex
-  const summary = output.replace(/\u001b\[[0-9;]*m/g, '').match(/^\s*Tests\s+(.+)$/m)?.[1] ?? ''
-  return [...summary.matchAll(/(\d+) (passed|failed|regression)/g)].reduce(
-    (total, match) => total + Number(match[1]),
-    0
-  )
+  const markers = output.matchAll(/(?:^|\n)Executed tests: (\d+)\r?(?=\n|$)/g)
+  let count = 0
+  for (const marker of markers) count = Number(marker[1])
+  return count
 }

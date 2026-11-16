@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises'
+import { spawnSync } from 'node:child_process'
+import { readFile, unlink, writeFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { test } from '@japa/runner'
 import {
   executedTests,
@@ -8,6 +10,7 @@ import {
 } from '../../bin/check_changed_plan.js'
 
 const packageJson = new URL('../../package.json', import.meta.url)
+const root = fileURLToPath(new URL('../../', import.meta.url))
 const changed = (...paths: string[]): ChangedFile[] =>
   paths.map((path) => ({ path, deleted: false }))
 
@@ -124,11 +127,75 @@ test('--static plans a spec-only change exactly as the default does', ({ assert 
 })
 
 test('counts executed tests from the Japa summary', ({ assert }) => {
-  assert.equal(executedTests('\u001b[2mTests\u001b[22m  335 passed, 2 skipped (337)'), 335)
-  assert.equal(executedTests('Tests  14 passed, 1 failed (15)'), 15)
-  assert.equal(executedTests('Tests  1 regression (1)'), 1)
-  assert.equal(executedTests('Tests  2 passed, 1 regression, 3 skipped (6)'), 3)
-  assert.equal(executedTests(' NO TESTS EXECUTED '), 0)
+  assert.equal(executedTests('Executed tests: 335'), 335)
+  assert.equal(executedTests('Executed tests: 14'), 14)
+  assert.equal(executedTests('Executed tests: 1'), 1)
+  assert.equal(executedTests('Executed tests: 3'), 3)
+  assert.equal(executedTests('Executed tests: 0'), 0)
+  assert.equal(executedTests('NO TESTS EXECUTED'), 0)
+})
+
+test('uses the last complete executed count after misleading output', ({ assert }) => {
+  assert.equal(
+    executedTests(
+      [
+        'Tests 999 passed, 0 skipped (999)',
+        'Executed tests: 999',
+        'Executed tests: 2 skipped, 1 todo',
+        'Executed tests: 2',
+      ].join('\n')
+    ),
+    2
+  )
+})
+
+test('the test entry rejects empty and skipped-only selections', async ({ assert }) => {
+  const fixturePath = 'tests/tooling/skipped-only-probe.spec.ts'
+  const fixture = new URL(`./skipped-only-probe.spec.ts`, import.meta.url)
+  await writeFile(
+    fixture,
+    [
+      "import { test } from '@japa/runner'",
+      "console.log('Tests 999 passed, 0 skipped (999)')",
+      "console.log('Executed tests: 999')",
+      "test('skipped only', () => {}).skip()",
+      '',
+    ].join('\n')
+  )
+
+  try {
+    const empty = spawnSync(
+      process.execPath,
+      [
+        '--import=@poppinss/ts-exec',
+        '--enable-source-maps',
+        'bin/test.ts',
+        '--files=tests/tooling/__no_such_spec__.spec.ts',
+      ],
+      { cwd: root, encoding: 'utf8' }
+    )
+    assert.equal(empty.status, 1)
+    assert.include(empty.stdout, 'Executed tests: 0')
+
+    const skipped = spawnSync(
+      process.execPath,
+      [
+        '--import=@poppinss/ts-exec',
+        '--enable-source-maps',
+        'bin/test.ts',
+        `--files=${fixturePath}`,
+      ],
+      { cwd: root, encoding: 'utf8' }
+    )
+    const output = skipped.stdout + skipped.stderr
+    assert.equal(skipped.status, 1)
+    assert.include(output, 'Tests 999 passed, 0 skipped (999)')
+    assert.include(output, 'Executed tests: 999')
+    assert.include(output, 'Executed tests: 0')
+    assert.include(output, 'No tests executed:')
+  } finally {
+    await unlink(fixture)
+  }
 })
 
 test('the package script runs the check:changed entry point', async ({ assert }) => {
