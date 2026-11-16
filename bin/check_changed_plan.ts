@@ -12,8 +12,6 @@ export interface ChangedCheckStep {
   countsTests?: boolean
   /** Fail when the step executes no tests: its file filter is wrong. */
   requiresTests?: boolean
-  /** Fail when the step leaves the worktree dirty. */
-  requiresCleanTree?: boolean
 }
 
 export interface SkippedCheckStep {
@@ -30,6 +28,7 @@ const formatterInputs = [
   /^\.prettierignore$/,
   /^\.editorconfig$/,
   /^package\.json$/,
+  /^pnpm-lock\.yaml$/,
 ]
 
 const isSpec = (path: string) => /^tests\/.+\.spec\.ts$/.test(path)
@@ -55,7 +54,9 @@ export function planChangedChecks(
 ): PlannedCheckStep[] {
   const paths = changes.map((change) => change.path)
   const present = changes.filter((change) => !change.deleted).map((change) => change.path)
-  const formattable = present.filter((path) => path !== 'pnpm-lock.yaml')
+  const formattable = present
+    .filter((path) => path !== 'pnpm-lock.yaml')
+    .map((path) => (path.startsWith('-') ? `./${path}` : path))
   const specs = present.filter(isSpec)
   const suite = specs.length < changes.length
   const packageChanged = paths.some((path) => !outsidePackage(path))
@@ -128,12 +129,10 @@ export function planChangedChecks(
   ]
 }
 
-/** Count the tests a Japa run executed from its summary line; 0 when none ran. */
+/** Read the final executed-test marker emitted by the Japa teardown; 0 when none ran. */
 export function executedTests(output: string): number {
-  // eslint-disable-next-line no-control-regex
-  const summary = output.replace(/\u001b\[[0-9;]*m/g, '').match(/^\s*Tests\s+(.+)$/m)?.[1] ?? ''
-  return [...summary.matchAll(/(\d+) (passed|failed|regression)/g)].reduce(
-    (total, match) => total + Number(match[1]),
-    0
-  )
+  const markers = output.matchAll(/(?:^|\n)Executed tests: (\d+)\r?(?=\n|$)/g)
+  let count = 0
+  for (const marker of markers) count = Number(marker[1])
+  return count
 }

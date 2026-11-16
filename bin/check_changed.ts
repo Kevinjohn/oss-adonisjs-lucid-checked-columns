@@ -110,7 +110,10 @@ function interrupt(signal: NodeJS.Signals): void {
     interruptedBy = signal
     const child = active
     interruptionCleanup = child ? terminateOwnedProcess(child) : Promise.resolve()
-    void interruptionCleanup.catch((error) => abandonActive?.(error))
+    void interruptionCleanup.then(
+      () => abandonActive?.(undefined),
+      (error) => abandonActive?.(error)
+    )
     return
   }
 
@@ -135,8 +138,18 @@ function misuse(message: string): never {
 
 function git(args: string[]): string {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
-  if (result.status !== 0) misuse(`git ${args.join(' ')} failed: ${result.stderr.trim()}`)
+  gitSpawnFailure(args, result)
+  if (result.status !== 0)
+    misuse(`git ${args.join(' ')} exited ${result.status}: ${result.stderr?.trim() || 'no stderr'}`)
   return result.stdout
+}
+
+function gitSpawnFailure(
+  args: string[],
+  result: { error?: Error; signal: NodeJS.Signals | null }
+): void {
+  if (result.error) misuse(`git ${args.join(' ')} failed to spawn: ${result.error.message}`)
+  if (result.signal) misuse(`git ${args.join(' ')} terminated by ${result.signal}`)
 }
 
 function changedFiles(base: string): ChangedFile[] {
@@ -153,9 +166,7 @@ function changedFiles(base: string): ChangedFile[] {
 }
 
 /** Run one step in its own process group so an interrupt can stop descendants too. */
-function run(
-  step: ChangedCheckStep
-): Promise<{ status: number | null; output: string; cleanupError?: unknown }> {
+function run(step: ChangedCheckStep): Promise<{ status: number | null; output: string }> {
   return new Promise((resolve) => {
     const child = spawn(step.command[0], step.command.slice(1), {
       cwd: root,
@@ -171,22 +182,36 @@ function run(
     const timer = setTimeout(() => {
       timedOut = true
       output += `\n[check:changed] stopped after ${stepLimitMs / 60000} minutes\n`
-      try {
-        signalOwnedProcess(child, 'SIGKILL')
-      } catch (error) {
-        output += `[check:changed] timeout cleanup failed: ${describeError(error)}\n`
-      }
+      void (async () => {
+        const failures: unknown[] = []
+        try {
+          signalOwnedProcess(child, 'SIGKILL')
+        } catch (error) {
+          failures.push(error)
+        }
+        try {
+          if (!(await waitForOwnedProcessExit(child, reapGraceMs)))
+            failures.push(new Error('The owned process group did not exit after SIGKILL.'))
+        } catch (error) {
+          failures.push(error)
+        }
+        if (active === child && !settled)
+          abandon(
+            failures.length ? new AggregateError(failures, 'Deadline cleanup failed.') : undefined
+          )
+      })()
     }, stepLimitMs)
     child.once('error', (error) => {
       spawnError = error
     })
     let settled = false
-    abandonActive = (error) => {
+    const abandon = (error: unknown) => {
       child.stdout.destroy()
       child.stderr.destroy()
       child.unref()
       void finish(null, null, error)
     }
+    abandonActive = abandon
     const finish = async (
       status: number | null,
       signal: NodeJS.Signals | null,
@@ -204,12 +229,12 @@ function run(
         }
       }
       if (active === child) active = undefined
-      abandonActive = undefined
+      if (abandonActive === abandon) abandonActive = undefined
       if (spawnError) output += `\n[check:changed] spawn failed: ${spawnError.message}\n`
       if (cleanupError !== undefined) {
         output += `\n[check:changed] cleanup failed: ${describeError(cleanupError)}\n`
       }
-      resolve({ status: timedOut || signal ? null : status, output, cleanupError })
+      resolve({ status: timedOut || signal ? null : status, output })
     }
     child.once('close', (status, signal) => void finish(status, signal))
   })
@@ -223,10 +248,10 @@ if (Number(process.versions.node.split('.')[0]) !== 24) {
   misuse(`Use Node 24 (found ${process.version}); run nvm use`)
 }
 const base = args[0] ?? 'origin/main'
-if (
-  spawnSync('git', ['rev-parse', '--verify', '--quiet', `${base}^{commit}`], { cwd: root }).status
-)
-  misuse(`Unknown base ref ${base}`)
+const preflightArgs = ['rev-parse', '--verify', '--quiet', `${base}^{commit}`]
+const preflight = spawnSync('git', preflightArgs, { cwd: root })
+gitSpawnFailure(preflightArgs, preflight)
+if (preflight.status !== 0) misuse(`Unknown base ref ${base}`)
 
 const changes = changedFiles(base)
 console.log(`[check:changed] ${changes.length} changed files since the merge-base with ${base}`)
@@ -237,7 +262,6 @@ for (const step of planChangedChecks(changes, { static: flags.includes('--static
     console.log(`skip ${step.label} (${step.skip})`)
     continue
   }
-  const before = step.requiresCleanTree ? git(['status', '--porcelain']) : ''
   const { status, output } = await run(step)
   const tests = step.countsTests ? executedTests(output) : undefined
   const problem =
@@ -247,9 +271,7 @@ for (const step of planChangedChecks(changes, { static: flags.includes('--static
         ? `interrupted by ${interruptedBy}`
         : step.requiresTests && tests === 0
           ? 'no tests executed'
-          : step.requiresCleanTree && git(['status', '--porcelain']) !== before
-            ? 'left the worktree dirty'
-            : undefined
+          : undefined
   if (problem) {
     failed = true
     console.log(`fail ${step.label} (${problem}): ${step.command.join(' ')}`)

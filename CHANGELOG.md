@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Column hook types now preserve their value and return types with Lucid's optional context
+  arguments.
+
+- Sparse arrays and allowlists no longer validate absent elements.
+- Dynamic and partially typed `isOneOf` allowlists retain sound false-branch types while tuples of
+  exact literals keep their listed-value inference.
+
+- ISO predicates now retain sound false-branch types for mixed unions.
+
+- JSON column detection now survives Lucid's inherited-column cloning and separately evaluated
+  package copies.
+
+- Document Lucid's dirty-tracking limitation for top-level JSON objects with `isDirty: false`.
 - `jsonColumn` validates a written value's JSON encoding as well as the value, so `prepare` never
   returns text that `consume` refuses (array holes, `NaN`, a shape-changing `toJSON`).
 - `jsonColumn` wraps an encoding error (a `BigInt` or a cycle) in
