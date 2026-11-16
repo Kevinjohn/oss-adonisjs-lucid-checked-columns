@@ -410,3 +410,61 @@ require('node:module').syncBuiltinESMExports()
     assert.doesNotMatch(result.text, /cleanup failed/)
   }
 }).timeout(10_000)
+
+test('a late deadline reap cannot abandon the next check', async ({ cleanup }) => {
+  const f = await fixture(cleanup)
+  const secondStarted = path.join(f.directory, 'second-started')
+  const releaseReap = path.join(f.directory, 'release-reap')
+  const secondAbandoned = path.join(f.directory, 'second-abandoned')
+  const hook = path.join(f.directory, 'late-reap.cjs')
+  await writeFile(
+    hook,
+    `const cp = require('node:child_process')
+const fs = require('node:fs')
+const { EventEmitter } = require('node:events')
+const { PassThrough } = require('node:stream')
+const originalTimeout = global.setTimeout
+let deadlineScheduled = false
+global.setTimeout = (callback, delay, ...args) => {
+ if (delay === 900000 && !deadlineScheduled) { deadlineScheduled = true; return originalTimeout(callback, 0, ...args) }
+ return originalTimeout(callback, delay, ...args)
+}
+let spawned = 0
+let firstChild
+let second
+function close(child, status, signal) {
+ child.stdout.end(); child.stderr.end(); child.exitCode = status; child.signalCode = signal
+ child.emit('close', status, signal)
+}
+cp.spawn = () => {
+ const child = new EventEmitter(); child.pid = 777000 + ++spawned; child.exitCode = child.signalCode = null
+ child.stdout = new PassThrough(); child.stderr = new PassThrough()
+ child.unref = () => { if (child === second) fs.writeFileSync(${JSON.stringify(secondAbandoned)}, 'yes') }
+ if (spawned === 1) firstChild = child
+ if (spawned === 2) { second = child; fs.writeFileSync(${JSON.stringify(secondStarted)}, 'yes') }
+ if (spawned > 2) setImmediate(() => close(child, 0, null))
+ return child
+}
+process.kill = (pid, signal) => {
+ if (pid === -777001 && signal === 'SIGKILL') { close(firstChild, null, 'SIGKILL'); return true }
+ if (pid === -777001 && signal === 0) {
+  if (!fs.existsSync(${JSON.stringify(releaseReap)})) return true
+  setImmediate(() => close(second, 0, null))
+  const error = new Error('group gone'); error.code = 'ESRCH'; throw error
+ }
+ const error = new Error('group gone'); error.code = 'ESRCH'; throw error
+}
+require('node:module').syncBuiltinESMExports()
+`
+  )
+  f.env.NODE_OPTIONS = `${f.env.NODE_OPTIONS ?? ''} --require=${hook}`
+  const output = await outputOf(launch(f))
+  await waitForFile(secondStarted)
+  await writeFile(releaseReap, 'yes')
+  const result = await collectExit(output)
+  assert.equal(result.code, 1, result.text)
+  assert.match(result.text, /pass lint/)
+  assert.match(result.text, /pass typecheck/)
+  assert.doesNotMatch(result.text, /fail lint/)
+  await assert.rejects(readFile(secondAbandoned), { code: 'ENOENT' })
+}).timeout(10_000)
