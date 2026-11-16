@@ -91,7 +91,8 @@ declare launchedOn: PostLaunchDate
 ```
 
 `isoDateColumn` checks that the value is a real `YYYY-MM-DD` date; it does not check that it is after
-the host's launch date.
+the host's launch date. The shown declaration asserts that host-specific cutoff; it does not enforce
+it. Host code must enforce any stronger rule on values before writing and after reading them.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
 tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
 union-typed elements validate membership without excluding their element type from the false branch.

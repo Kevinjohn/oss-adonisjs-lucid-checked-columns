@@ -65,8 +65,8 @@ export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<T[]> {
 /**
  * Column options that store one model property as JSON text and refuse an invalid value in both
  * directions. `null` passes through unchanged. `table` and `column` only name the column in errors.
- * A written value is validated before and after encoding, so whatever `prepare` returns, `consume`
- * accepts.
+ * A written value is validated before and after encoding. Under unchanged host validation rules,
+ * the encoded value passes read-side validation; `consume` continues to validate every read.
  * @throws Error `Invalid persisted JSON in <table>.<column>` when a written value or its JSON
  *   encoding fails `validate`, a stored value fails `validate`, or stored text is not JSON.
  * @throws Error `Cannot persist undefined JSON in <table>.<column>` when a written value passes
