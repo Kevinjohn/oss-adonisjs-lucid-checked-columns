@@ -18,7 +18,8 @@
   counts executed tests, passes dash-prefixed formatter paths literally, and invalidates formatting
   checks when formatter inputs change. Its process handling uses bounded deadline cleanup, framed
   PID records, readiness checks, and complete child output; Git spawn, signal, and exit failures
-  retain their diagnostics.
+  retain their diagnostics. The runner removes its unused clean-tree option and unconsumed
+  cleanup-result plumbing while keeping cleanup failures in internal diagnostics.
 - Release readiness rejects an invalid SHA-256 checksum. Documentation now describes JSON text
   storage, host validation and subtype limits, ISO year boundaries, and Lucid dirty-tracking and
   query-builder limitations.
