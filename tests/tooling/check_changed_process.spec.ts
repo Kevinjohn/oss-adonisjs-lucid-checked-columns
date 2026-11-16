@@ -238,6 +238,16 @@ test('failed readiness reaps the owned command group before removing the fixture
     await cleanups[0]()
   }
 }).timeout(10_000)
+test('PID readiness stops when the worker exits before publication', async ({ cleanup }) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-early-exit-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const child = spawn(process.execPath, ['-e', ''], { stdio: ['ignore', 'pipe', 'pipe'] })
+  const output = await outputOf(child)
+  await assert.rejects(
+    waitForPid(path.join(directory, 'missing.pid'), 5000, output.completion),
+    /exited before publishing a PID/
+  )
+})
 
 test('TERM-resistant descendants receive KILL, are reaped, and block later selected checks', async ({
   cleanup,
@@ -245,7 +255,7 @@ test('TERM-resistant descendants receive KILL, are reaped, and block later selec
   const f = await fixture(cleanup, { command: 'hang' })
   const child = launch(f)
   const output = await outputOf(child)
-  const descendantPid = await waitForPid(f.ready)
+  const descendantPid = await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)
@@ -261,7 +271,7 @@ test('a second signal escalates immediately while the first signal determines th
   const f = await fixture(cleanup, { command: 'hang', hook: 'record-term' })
   const child = launch(f)
   const output = await outputOf(child)
-  const descendantPid = await waitForPid(f.ready)
+  const descendantPid = await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   await waitForFile(f.termSent)
   child.kill('SIGINT')
@@ -275,7 +285,7 @@ test('reports failed final reap and retains the first signal result', async ({ c
   const f = await fixture(cleanup, { command: 'hang', hook: 'fail-reap' })
   const child = launch(f)
   const output = await outputOf(child)
-  await waitForPid(f.ready)
+  await waitForPid(f.ready, 5000, output.completion)
   child.kill('SIGTERM')
   const result = await collectExit(output)
   assert.equal(result.code, 143, result.text)

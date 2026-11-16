@@ -41,23 +41,44 @@ export async function isAlive(pid: number): Promise<boolean> {
 }
 
 /** Wait for a complete positive PID before using it for process liveness or signals. */
-export async function waitForPid(filePath: string, timeoutMs = 5000): Promise<number> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    try {
-      const contents = await readFile(filePath, 'utf8')
-      if (/^[1-9]\d*\n?$/.test(contents)) {
-        const pid = Number(contents)
-        if (Number.isSafeInteger(pid)) return pid
-      } else if (contents.trim() !== '') {
-        throw new Error(`Invalid PID record in ${filePath}: ${JSON.stringify(contents)}`)
+export async function waitForPid(
+  filePath: string,
+  timeoutMs = 5000,
+  completion?: ChildOutput['completion']
+): Promise<number> {
+  let stopped = false
+  const poll = async (): Promise<number> => {
+    const deadline = Date.now() + timeoutMs
+    while (!stopped && Date.now() < deadline) {
+      try {
+        const contents = await readFile(filePath, 'utf8')
+        if (/^[1-9]\d*\n?$/.test(contents)) {
+          const pid = Number(contents)
+          if (Number.isSafeInteger(pid)) return pid
+        } else if (contents.trim() !== '') {
+          throw new Error(`Invalid PID record in ${filePath}: ${JSON.stringify(contents)}`)
+        }
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      await new Promise((resolve) => setTimeout(resolve, 20))
     }
-    await new Promise((resolve) => setTimeout(resolve, 20))
+    throw new Error(`Timed out waiting for a complete PID in ${filePath}`)
   }
-  throw new Error(`Timed out waiting for a complete PID in ${filePath}`)
+  try {
+    return await Promise.race([
+      poll(),
+      ...(completion
+        ? [
+            completion.then((): never => {
+              throw new Error(`Child exited before publishing a PID in ${filePath}`)
+            }),
+          ]
+        : []),
+    ])
+  } finally {
+    stopped = true
+  }
 }
 
 /** Poll for a marker file written by a child. */
