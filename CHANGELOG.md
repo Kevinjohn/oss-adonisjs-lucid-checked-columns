@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- JSON column detection now survives Lucid's inherited-column cloning and separately evaluated
+  package copies.
+
 - Document Lucid's dirty-tracking limitation for top-level JSON objects with `isDirty: false`.
 - `jsonColumn` validates a written value's JSON encoding as well as the value, so `prepare` never
   returns text that `consume` refuses (array holes, `NaN`, a shape-changing `toJSON`).

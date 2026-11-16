@@ -35,7 +35,7 @@ Scope: package declaration check; the write itself is host-owned.
 
 ```mermaid
 flowchart TD
-    A["isJsonColumn(options)"] --> B{"options?.meta === JSON_COLUMN marker?"}
+    A["isJsonColumn(options)"] --> B{"options?.meta?.checkedColumns matches package marker?"}
     B -->|Yes| C["return true"]
     B -->|No| D["return false"]
 ```

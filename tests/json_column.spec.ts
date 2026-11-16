@@ -239,5 +239,14 @@ test.group('isJsonColumn', () => {
     assert.isFalse(isJsonColumn(Hero.$getColumn('id')))
     assert.isFalse(isJsonColumn(Hero.$getColumn('lookalike')))
     assert.isFalse(isJsonColumn(Hero.$getColumn('missing')))
+    class Child extends Hero {}
+    Child.boot()
+    assert.isTrue(isJsonColumn(Child.$getColumn('active')))
+  })
+
+  test('recognises metadata from a separate module evaluation', async ({ assert }) => {
+    const copy = await import(new URL('../src/json_column.ts?copy=1', import.meta.url).href)
+    assert.isTrue(isJsonColumn(copy.jsonColumn('heroes', 'active', isBoolean)))
+    assert.isFalse(isJsonColumn({ meta: { json: true } }))
   })
 })
