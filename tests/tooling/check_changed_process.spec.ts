@@ -61,7 +61,7 @@ async function fixture(options: FixtureOptions = {}): Promise<Fixture> {
 
   await writeFile(
     path.join(root, 'worker.js'),
-    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nawait writeFile(${JSON.stringify(ready)}, String(process.pid))\nsetInterval(() => {}, 1000)\n`
+    `import { writeFile } from 'node:fs/promises'\nprocess.on('SIGTERM', () => {})\nawait writeFile(${JSON.stringify(ready)}, String(process.pid) + '\\n')\nsetInterval(() => {}, 1000)\n`
   )
   if (options.command !== 'missing') {
     const commandPath = path.join(bin, 'pnpm')
@@ -150,10 +150,22 @@ test('PID readiness waits for a complete positive record', async ({ cleanup }) =
   const pidFile = path.join(directory, 'descendant.pid')
   await writeFile(pidFile, '')
   const ready = waitForPid(pidFile)
-  await writeFile(pidFile, '12345')
+  await writeFile(pidFile, '12345\n')
   assert.equal(await ready, 12345)
   await writeFile(pidFile, 'invalid')
   await assert.rejects(waitForPid(pidFile), /Invalid PID record/)
+})
+
+test('PID readiness rejects a numeric prefix until its record is terminated', async ({
+  cleanup,
+}) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'checked-columns-partial-pid-'))
+  cleanup(() => rm(directory, { recursive: true, force: true }))
+  const pidFile = path.join(directory, 'descendant.pid')
+  await writeFile(pidFile, '123')
+  await assert.rejects(waitForPid(pidFile, 100), /Timed out waiting for a complete PID/)
+  await writeFile(pidFile, '12345\n')
+  assert.equal(await waitForPid(pidFile), 12345)
 })
 
 test('PID readiness stops when the worker exits before publication', async ({ cleanup }) => {

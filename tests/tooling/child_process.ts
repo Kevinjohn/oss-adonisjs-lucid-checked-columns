@@ -52,10 +52,11 @@ export async function waitForPid(
     while (!stopped && Date.now() < deadline) {
       try {
         const contents = await readFile(filePath, 'utf8')
-        if (/^[1-9]\d*\n?$/.test(contents)) {
+        if (/^[1-9]\d*\n$/.test(contents)) {
           const pid = Number(contents)
           if (Number.isSafeInteger(pid)) return pid
-        } else if (contents.trim() !== '') {
+          throw new Error(`Invalid PID record in ${filePath}: ${JSON.stringify(contents)}`)
+        } else if (contents !== '' && !/^[1-9]\d*$/.test(contents)) {
           throw new Error(`Invalid PID record in ${filePath}: ${JSON.stringify(contents)}`)
         }
       } catch (error) {
