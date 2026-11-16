@@ -12,6 +12,9 @@ const JSON_COLUMN = Object.freeze({
   checkedColumns: '@kevinjohn/adonisjs-lucid-checked-columns/json',
 })
 
+declare const listedValue: unique symbol
+type ListedValue<T> = T & { readonly [listedValue]: true }
+
 /** A type guard for the value one JSON column may hold. */
 export type JsonValidator<T> = (value: unknown) => value is T
 
@@ -20,8 +23,12 @@ export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
   typeof value === 'boolean'
 
 /** Accepts exactly the listed strings or numbers. */
-export function isOneOf<const T extends string | number>(values: readonly T[]): JsonValidator<T> {
-  return (value): value is T => values.includes(value as T)
+export function isOneOf<const V extends readonly (string | number)[]>(
+  values: V
+): JsonValidator<number extends V['length'] ? ListedValue<V[number]> : V[number]> {
+  return ((value: unknown) => values.includes(value as V[number])) as JsonValidator<
+    number extends V['length'] ? ListedValue<V[number]> : V[number]
+  >
 }
 
 /** Accepts an array whose every element passes `validate`. */

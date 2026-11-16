@@ -212,6 +212,16 @@ test.group('validators', () => {
     if (isWeekStart(value)) expectTypeOf(value).toEqualTypeOf<0 | 1>()
   })
 
+  test('dynamic allowlists preserve possible values in the false branch', ({ expectTypeOf }) => {
+    const isDynamic = isOneOf(['a', 'b'] as ('a' | 'b')[])
+    const value = 'c' as 'a' | 'b' | 'c' | number
+    if (isDynamic(value)) {
+      expectTypeOf(value).toExtend<'a' | 'b'>()
+    } else {
+      expectTypeOf(value).toEqualTypeOf<'a' | 'b' | 'c' | number>()
+    }
+  })
+
   test('isArrayOf accepts only arrays whose every element is valid', ({ assert }) => {
     const isFlags = isArrayOf(isBoolean)
     assert.isTrue(isFlags([]))

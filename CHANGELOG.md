@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Dynamic `isOneOf` allowlists retain sound false-branch types while literal tuples keep their
+  listed-value inference.
+
 - ISO predicates now retain sound false-branch types for mixed unions.
 
 - JSON column detection now survives Lucid's inherited-column cloning and separately evaluated
