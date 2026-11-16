@@ -1,22 +1,27 @@
-import { once } from 'node:events'
 import type { ChildProcess } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 
 /** Collect a child's stdout and stderr as it runs. */
-export async function outputOf(child: ChildProcess): Promise<{ text: () => string }> {
-  let output = ''
-  child.stdout!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
-  return { text: () => output }
+type ChildOutput = {
+  completion: Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }>
 }
 
-/** Wait for a child to exit and return its status with the output collected so far. */
+export async function outputOf(child: ChildProcess): Promise<ChildOutput> {
+  let output = ''
+  child.stdout?.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
+  child.stderr?.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
+  const completion = new Promise<Awaited<ChildOutput['completion']>>((resolve, reject) => {
+    child.once('error', reject)
+    child.once('close', (code, signal) => resolve({ code, signal, text: output }))
+  })
+  return { completion }
+}
+
+/** Return the completion captured when output collection began. */
 export async function collectExit(
-  child: ChildProcess,
-  output: { text: () => string }
+  output: ChildOutput
 ): Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }> {
-  const [code, signal] = (await once(child, 'exit')) as [number | null, NodeJS.Signals | null]
-  return { code, signal, text: output.text() }
+  return output.completion
 }
 
 /** Whether a process is still running; a zombie counts as gone. */
