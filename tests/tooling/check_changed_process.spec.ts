@@ -352,3 +352,38 @@ require('node:module').syncBuiltinESMExports()
   assert.match(result.text, /LOCAL_HANDLE_RELEASED/)
   assert.equal(await readFile(f.log, 'utf8'), '')
 }).timeout(10_000)
+
+test('deadline and successful group cleanup settle a held pipe without close', async ({
+  cleanup,
+}) => {
+  for (const mode of ['deadline', 'interrupt'] as const) {
+    const f = await fixture(cleanup)
+    const hook = path.join(f.directory, 'held-pipe.cjs')
+    await writeFile(
+      hook,
+      `const cp = require('node:child_process')
+const { EventEmitter } = require('node:events')
+const { PassThrough } = require('node:stream')
+const originalTimeout = global.setTimeout
+if (${mode === 'deadline'}) global.setTimeout = (callback, delay, ...args) => originalTimeout(callback, delay === 900000 ? 0 : delay, ...args)
+cp.spawn = () => {
+ const child = new EventEmitter(); child.pid = 99999999; child.exitCode = child.signalCode = null
+ child.stdout = new PassThrough(); child.stderr = new PassThrough()
+ const liveHandle = setInterval(() => {}, 1000)
+ child.unref = () => { clearInterval(liveHandle); console.log('LOCAL_HANDLE_RELEASED') }
+ setImmediate(() => { child.stdout.write('partial output'); if (${mode === 'interrupt'}) process.emit('SIGTERM') })
+ return child
+}
+process.kill = (_pid, signal) => { if (signal === 0) { const error = new Error('gone'); error.code = 'ESRCH'; throw error } return true }
+require('node:module').syncBuiltinESMExports()
+`
+    )
+    f.env.NODE_OPTIONS = `${f.env.NODE_OPTIONS ?? ''} --require=${hook}`
+    const result = await collectExit(await outputOf(launch(f)))
+    assert.equal(result.code, mode === 'deadline' ? 1 : 143, result.text)
+    assert.match(result.text, /partial output/)
+    assert.match(result.text, /LOCAL_HANDLE_RELEASED/)
+    if (mode === 'deadline') assert.match(result.text, /stopped after 15 minutes/)
+    assert.doesNotMatch(result.text, /cleanup failed/)
+  }
+}).timeout(10_000)

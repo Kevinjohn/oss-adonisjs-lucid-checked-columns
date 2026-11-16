@@ -110,7 +110,10 @@ function interrupt(signal: NodeJS.Signals): void {
     interruptedBy = signal
     const child = active
     interruptionCleanup = child ? terminateOwnedProcess(child) : Promise.resolve()
-    void interruptionCleanup.catch((error) => abandonActive?.(error))
+    void interruptionCleanup.then(
+      () => abandonActive?.(undefined),
+      (error) => abandonActive?.(error)
+    )
     return
   }
 
@@ -181,11 +184,23 @@ function run(
     const timer = setTimeout(() => {
       timedOut = true
       output += `\n[check:changed] stopped after ${stepLimitMs / 60000} minutes\n`
-      try {
-        signalOwnedProcess(child, 'SIGKILL')
-      } catch (error) {
-        output += `[check:changed] timeout cleanup failed: ${describeError(error)}\n`
-      }
+      void (async () => {
+        const failures: unknown[] = []
+        try {
+          signalOwnedProcess(child, 'SIGKILL')
+        } catch (error) {
+          failures.push(error)
+        }
+        try {
+          if (!(await waitForOwnedProcessExit(child, reapGraceMs)))
+            failures.push(new Error('The owned process group did not exit after SIGKILL.'))
+        } catch (error) {
+          failures.push(error)
+        }
+        abandonActive?.(
+          failures.length ? new AggregateError(failures, 'Deadline cleanup failed.') : undefined
+        )
+      })()
     }, stepLimitMs)
     child.once('error', (error) => {
       spawnError = error
