@@ -64,8 +64,20 @@ The `table` and `column` arguments only name the column in error messages.
 | `isoTimestampColumn(table, column)`         | Keeps a UTC instant exactly as `Date#toISOString()` writes it (three millisecond digits, trailing `Z`) unchanged; refuses anything else.               |
 | `isIsoDate(value)`, `isIsoTimestamp(value)` | The predicates the two ISO helpers use.                                                                                                                |
 
+`jsonColumn` stores JSON text, so use a text column for this representation. On read, every string
+is parsed as JSON before validation. A decoded native scalar string is ambiguous with encoded JSON
+text: for example, the string `true` parses as the boolean `true`, while `red` is not valid JSON.
+Decoded scalar strings from native JSON columns are not a supported representation; the helper does
+not fall back to treating unparseable text as a decoded string. This documents the helper's value
+contract and does not establish behavior for a particular database driver.
+
 Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
+The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
+tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
+union-typed elements validate membership without excluding their element type from the false branch.
+Their validated value type is distinct, so validate a value before passing it to a column typed
+from such an allowlist.
 
 ## Errors
 
@@ -87,6 +99,10 @@ Each refusal throws a plain `Error`:
   with an offset is refused by the ISO helpers.
 - Lucid runs `prepare` and `consume` for model reads and writes only. Query-builder writes bypass
   them.
+- Lucid's dirty tracking can miss a changed top-level JSON object when that object has its own
+  `isDirty: false` property. A model save can then skip the update before `prepare` runs. Avoid
+  that property name for top-level object values when using model saves; arbitrary object keys
+  require a fix in Lucid's dirty tracking.
 
 ## Development
 
