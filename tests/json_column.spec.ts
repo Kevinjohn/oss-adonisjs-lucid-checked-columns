@@ -212,6 +212,24 @@ test.group('validators', () => {
     if (isWeekStart(value)) expectTypeOf(value).toEqualTypeOf<0 | 1>()
   })
 
+  test('hook types reject invalid writes with or without Lucid context', ({ expectTypeOf }) => {
+    const options = jsonColumn('heroes', 'active', isBoolean)
+    expectTypeOf(options.prepare).parameters.toEqualTypeOf<
+      [value: boolean | null, model?: unknown, column?: unknown]
+    >()
+    expectTypeOf(options.consume).returns.toEqualTypeOf<boolean | null>()
+    expectTypeOf(options.prepare(true)).toEqualTypeOf<string | null>()
+    expectTypeOf(options.prepare(true, {}, {})).toEqualTypeOf<string | null>()
+    expectTypeOf(options.consume(true)).toEqualTypeOf<boolean | null>()
+    expectTypeOf(options.consume(true, {}, {})).toEqualTypeOf<boolean | null>()
+    if (process.env.TYPECHECK_ONLY) {
+      // @ts-expect-error invalid value stays invalid with Lucid context
+      options.prepare('yes', {}, {})
+      // @ts-expect-error invalid value stays invalid without context
+      options.prepare('yes')
+    }
+  })
+
   test('dynamic allowlists preserve possible values in the false branch', ({ expectTypeOf }) => {
     const isDynamic = isOneOf(['a', 'b'] as ('a' | 'b')[])
     const value = 'c' as 'a' | 'b' | 'c' | number

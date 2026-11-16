@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
 
 test.group('isoDateColumn', () => {
@@ -105,6 +106,24 @@ test.group('ISO predicates', () => {
       expectTypeOf(timestamp).toExtend<string>()
     } else {
       expectTypeOf(timestamp).toEqualTypeOf<string | number>()
+    }
+  })
+  test('hook types reject invalid values with Lucid context', ({ expectTypeOf }) => {
+    const date = isoDateColumn('missions', 'starts_on')
+    class Mission extends BaseModel {
+      @column(date)
+      declare startsOn: string | null
+    }
+    expectTypeOf(Mission).toExtend<typeof BaseModel>()
+    expectTypeOf(date.prepare).parameters.toEqualTypeOf<
+      [value: string | null, model?: unknown, column?: unknown]
+    >()
+    expectTypeOf(date.consume).returns.toEqualTypeOf<string | null>()
+    expectTypeOf(date.prepare('2026-01-01')).toEqualTypeOf<string | null>()
+    expectTypeOf(date.prepare('2026-01-01', {}, {})).toEqualTypeOf<string | null>()
+    if (process.env.TYPECHECK_ONLY) {
+      // @ts-expect-error date values cannot be numbers with context
+      date.prepare(42, {}, {})
     }
   })
 })

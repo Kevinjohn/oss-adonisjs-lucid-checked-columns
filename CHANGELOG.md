@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Column hook types now preserve their value and return types with Lucid's optional context
+  arguments.
+
 - Sparse arrays and allowlists no longer validate absent elements.
 
 - Dynamic `isOneOf` allowlists retain sound false-branch types while literal tuples keep their
