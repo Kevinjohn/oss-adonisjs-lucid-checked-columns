@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- ISO predicates now retain sound false-branch types for mixed unions.
+
 - JSON column detection now survives Lucid's inherited-column cloning and separately evaluated
   package copies.
 

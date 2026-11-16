@@ -6,11 +6,16 @@ export type IsoColumnOptions<T extends string> = Pick<ColumnOptions, 'prepare' |
   consume(value: unknown): T | null
 }
 
+declare const isoDateBrand: unique symbol
+declare const isoTimestampBrand: unique symbol
+export type IsoDate = string & { readonly [isoDateBrand]: true }
+export type IsoTimestamp = string & { readonly [isoTimestampBrand]: true }
+
 /**
  * True only for a real calendar date written `YYYY-MM-DD`. Month lengths and leap years are
  * checked arithmetically, so the answer never depends on the host time zone.
  */
-export function isIsoDate(value: unknown): value is string {
+export function isIsoDate(value: unknown): value is IsoDate {
   if (typeof value !== 'string') return false
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return false
@@ -26,7 +31,7 @@ export function isIsoDate(value: unknown): value is string {
  * True only for a string that round-trips exactly through `Date#toISOString()`: a UTC instant
  * with three millisecond digits and a trailing `Z`.
  */
-export function isIsoTimestamp(value: unknown): value is string {
+export function isIsoTimestamp(value: unknown): value is IsoTimestamp {
   if (typeof value !== 'string') return false
   const milliseconds = Date.parse(value)
   if (!Number.isFinite(milliseconds)) return false
