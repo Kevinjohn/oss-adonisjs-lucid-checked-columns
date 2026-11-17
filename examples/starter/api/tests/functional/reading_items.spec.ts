@@ -19,14 +19,15 @@ test.group('reading items', (group) => {
       .header('Authorization', `Bearer ${token}`)
       .json({ title: 'Lucid guide', labels: ['reference'] })
     created.assertStatus(201)
-    assert.deepEqual(created.body().labels, ['reference'])
+    assert.deepEqual((created.body() as { labels: string[] }).labels, ['reference'])
 
     const listed = await client
       .get('/api/v1/account/reading-items')
       .header('Authorization', `Bearer ${token}`)
     listed.assertStatus(200)
-    assert.deepEqual(listed.body().items[0].labels, ['reference'])
-    assert.equal(listed.body().items[0].title, 'Lucid guide')
+    const listedItems = (listed.body() as { items: { title: string; labels: string[] }[] }).items
+    assert.deepEqual(listedItems[0].labels, ['reference'])
+    assert.equal(listedItems[0].title, 'Lucid guide')
   })
 
   test('rejects invalid persisted labels on a model read', async ({ assert, client }) => {
