@@ -1,3 +1,6 @@
 build/
 coverage/
 pnpm-lock.yaml
+
+# Each starter example uses its own formatting configuration.
+examples/starter/

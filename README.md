@@ -142,3 +142,7 @@ suite and build while still running specs changed in the diff.
 ## License
 
 MIT
+
+## Starter examples
+
+Runnable [API, Hypermedia, Inertia React, and Inertia Vue examples](examples/starter/README.md) show a Lucid model with a checked JSON label column, migrations, authenticated create and list journeys, and focused tests.
