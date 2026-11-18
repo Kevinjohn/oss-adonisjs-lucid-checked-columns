@@ -48,6 +48,20 @@ test('files the specs read run the full suite without building the package', ({ 
   }
 })
 
+test('nested story Markdown is formatted and runs the suite without selecting a build', ({
+  assert,
+}) => {
+  const story = 'user-stories/catalogue/example.md'
+  const commands = ran(planChangedChecks(changed(story)))
+  assert.deepEqual(commands.format.slice(-1), [story])
+  assert.deepEqual(commands.tests, ['pnpm', 'quick:test'])
+  assert.notProperty(commands, 'build')
+  assert.deepEqual(ran(planChangedChecks(changed(story, 'src/json_column.ts'))).build, [
+    'pnpm',
+    'build',
+  ])
+})
+
 test('lockfile and workspace changes run lint and typecheck', ({ assert }) => {
   for (const path of ['pnpm-lock.yaml', 'pnpm-workspace.yaml']) {
     assert.properties(ran(planChangedChecks(changed(path))), ['lint', 'typecheck'], path)

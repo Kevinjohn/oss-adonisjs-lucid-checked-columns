@@ -1,8 +1,8 @@
 import type { ColumnOptions, LucidRow } from '@adonisjs/lucid/types/model'
 
 /** Column options returned by `jsonColumn`; pass them to Lucid's `@column` decorator. */
-export type JsonColumnOptions<T> = Pick<ColumnOptions, 'meta'> & {
-  prepare(value: T | null, attribute?: string, model?: LucidRow): string | null
+export type JsonColumnOptions<T, Input = T> = Pick<ColumnOptions, 'meta'> & {
+  prepare(value: Input | null, attribute?: string, model?: LucidRow): string | null
   consume(value: unknown, attribute?: string, model?: LucidRow): T | null
 }
 
@@ -15,20 +15,23 @@ const JSON_COLUMN = Object.freeze({
 declare const listedValue: unique symbol
 type ListedValue<T> = T & { readonly [listedValue]: true }
 type IsUnion<T, C = T> = T extends C ? ([C] extends [T] ? false : true) : never
-type IsLiteralTuple<V extends readonly (string | number)[]> = number extends V['length']
-  ? false
+type IsLiteralTuple<V extends readonly (string | number)[]> = V extends readonly []
+  ? true
   : V extends readonly [
         infer Head extends string | number,
         ...infer Tail extends (string | number)[],
       ]
-    ? string extends Head
+    ? IsUnion<Head> extends true
       ? false
-      : number extends Head
+      : // A pattern or broad key allows an empty record; a singleton key requires a property.
+        {} extends Record<Head, never>
         ? false
-        : IsUnion<Head> extends true
-          ? false
-          : IsLiteralTuple<Tail>
-    : true
+        : IsLiteralTuple<Tail>
+    : false
+
+declare const denseArray: unique symbol
+type DenseArray<T> = T[] & { readonly [denseArray]: true }
+type JsonColumnInput<T> = T extends DenseArray<infer Element> ? JsonColumnInput<Element>[] : T
 
 /** A type guard for the value one JSON column may hold. */
 export type JsonValidator<T> = (value: unknown) => value is T
@@ -52,8 +55,8 @@ export function isOneOf<const V extends readonly (string | number)[]>(
 }
 
 /** Accepts an array whose every element passes `validate`. */
-export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<T[]> {
-  return (value): value is T[] => {
+export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<DenseArray<T>> {
+  return (value): value is DenseArray<T> => {
     if (!Array.isArray(value)) return false
     for (let index = 0; index < value.length; index++) {
       if (!Object.hasOwn(value, index) || !validate(value[index])) return false
@@ -78,7 +81,7 @@ export function jsonColumn<T>(
   table: string,
   column: string,
   validate: JsonValidator<T>
-): JsonColumnOptions<T> {
+): JsonColumnOptions<T, JsonColumnInput<T>> {
   const invalid = () => new Error(`Invalid persisted JSON in ${table}.${column}`)
   return {
     meta: JSON_COLUMN,
