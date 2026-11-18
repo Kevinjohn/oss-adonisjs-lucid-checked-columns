@@ -266,6 +266,27 @@ test.group('validators', () => {
     }
   })
 
+  test('alternative exact tuples preserve possible values on a membership miss', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    function enabledLocalePolicy(locales: readonly ['en-GB'] | readonly ['en-NZ']) {
+      const isEnabled = isOneOf(locales)
+      return (locale: 'en-GB' | 'en-NZ' | number) => {
+        if (isEnabled(locale)) {
+          expectTypeOf(locale).toExtend<'en-GB' | 'en-NZ'>()
+          return true
+        }
+        expectTypeOf(locale).toEqualTypeOf<'en-GB' | 'en-NZ' | number>()
+        return false
+      }
+    }
+
+    const isEnabled = enabledLocalePolicy(['en-GB'])
+    assert.isTrue(isEnabled('en-GB'))
+    assert.isFalse(isEnabled('en-NZ'))
+  })
+
   test('singleton patterns preserve the false branch while singleton literals narrow it', ({
     assert,
     expectTypeOf,

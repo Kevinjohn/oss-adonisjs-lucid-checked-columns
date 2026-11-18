@@ -15,11 +15,11 @@ const JSON_COLUMN = Object.freeze({
 declare const listedValue: unique symbol
 type ListedValue<T> = T & { readonly [listedValue]: true }
 type IsUnion<T, C = T> = T extends C ? ([C] extends [T] ? false : true) : never
-type IsLiteralTuple<V extends readonly (string | number)[]> = V extends readonly []
+// Check union members together because an allowlist only contains the selected tuple.
+type IsLiteralTuple<V extends readonly (string | number)[]> = [V] extends [readonly []]
   ? true
-  : V extends readonly [
-        infer Head extends string | number,
-        ...infer Tail extends (string | number)[],
+  : [V] extends [
+        readonly [infer Head extends string | number, ...infer Tail extends (string | number)[]],
       ]
     ? IsUnion<Head> extends true
       ? false

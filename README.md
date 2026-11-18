@@ -93,6 +93,7 @@ it. Host code must enforce any stronger rule on values before writing and after 
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
 tuples of exact literals infer their listed values. Dynamic arrays and tuples with widened,
 pattern-typed, or union-typed elements preserve their element type in the false branch.
+The same applies when the allowlist type is a union of different tuples.
 Their validated value type is distinct, so validate a value before passing it to a column typed
 from such an allowlist.
 

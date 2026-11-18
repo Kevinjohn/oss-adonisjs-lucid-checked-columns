@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- Preserve template-literal patterns and potentially sparse arrays in the false branches of
-  `isOneOf` and `isArrayOf`. JSON column preparation still validates ordinary arrays.
+- Preserve template-literal patterns and members of alternative allowlists in the false branch of
+  `isOneOf`. Preserve potentially sparse arrays in the false branch of `isArrayOf`. JSON column
+  preparation still validates ordinary arrays.
 - Skip package builds for story Markdown changes unless the diff also changes a package input.
 
 ## 0.2.0 - 2026-11-16
