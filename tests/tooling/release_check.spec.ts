@@ -75,7 +75,7 @@ async function fixture(shasum?: 'fail' | 'empty' | 'malformed' | 'valid') {
   return { cwd, path: bin }
 }
 
-test('release readiness prints a checked SHA-256 in a successful dry run', async ({ assert }) => {
+test('release readiness withholds outputs when the packed consumer fails', async ({ assert }) => {
   const { cwd, path } = await fixture('valid')
   try {
     const output = join(cwd, 'github-output')
@@ -85,11 +85,20 @@ test('release readiness prints a checked SHA-256 in a successful dry run', async
       env: { ...process.env, PATH: path, GITHUB_OUTPUT: output, RELEASE_CONSUMER_TEST_EXIT: '27' },
       encoding: 'utf8',
     })
-    await rm(join(cwd, 'smoke-attempted'))
     assert.equal(rejected.status, 27, rejected.stderr)
     assert.notInclude(rejected.stdout, 'ready:')
     assert.equal(await readFile(output, 'utf8'), '')
+    await readFile(join(cwd, 'smoke-attempted'))
+  } finally {
+    await rm(cwd, { recursive: true, force: true })
+  }
+})
 
+test('release readiness prints a checked SHA-256 in a successful dry run', async ({ assert }) => {
+  const { cwd, path } = await fixture('valid')
+  try {
+    const output = join(cwd, 'github-output')
+    await writeFile(output, '')
     const result = spawnSync('/bin/bash', [releaseScript], {
       cwd,
       env: { ...process.env, PATH: path, GITHUB_OUTPUT: output, RELEASE_CONSUMER_TEST_EXIT: '0' },
