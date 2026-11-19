@@ -40,18 +40,17 @@ export type JsonValidator<T> = (value: unknown) => value is T
 export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
   typeof value === 'boolean'
 
-/** Accepts exactly the listed strings or numbers. */
+/** Accepts exactly the strings or numbers listed when the guard is created. */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
 ): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
-  return ((value: unknown) => {
-    for (let index = 0; index < values.length; index++) {
-      if (!Object.hasOwn(values, index)) continue
-      const entry = values[index]
-      if (entry === value || (Number.isNaN(entry) && Number.isNaN(value))) return true
-    }
-    return false
-  }) as JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>>
+  const allowed = new Set<unknown>()
+  for (let index = 0; index < values.length; index++) {
+    if (Object.hasOwn(values, index)) allowed.add(values[index])
+  }
+  return ((value: unknown) => allowed.has(value)) as JsonValidator<
+    IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>
+  >
 }
 
 /** Accepts an array whose every element passes `acceptsValue`. */

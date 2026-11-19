@@ -341,6 +341,33 @@ test.group('validators', () => {
       'Invalid persisted JSON in heroes.flags'
     )
   })
+  test('isOneOf keeps the membership of a mutable exact tuple at creation', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    const values: ['Batman', 1] = ['Batman', 1]
+    const accepts = isOneOf(values)
+    values.pop()
+    values.reverse()
+    values.push('Batman')
+
+    const listed = 1 as 1 | 2
+    if (accepts(listed)) {
+      expectTypeOf(listed).toEqualTypeOf<1>()
+    } else {
+      assert.fail('the original guard rejected a removed member')
+    }
+
+    const unlisted = 2 as 1 | 2
+    if (accepts(unlisted)) {
+      assert.fail('the original guard accepted an unlisted value')
+    } else {
+      expectTypeOf(unlisted).toEqualTypeOf<2>()
+    }
+
+    assert.isFalse(isOneOf(values)(1))
+  })
+
   test('a sparse allowlist cannot match undefined', ({ assert }) => {
     const values = Array(1) as string[]
     const accepts = isOneOf(values)
