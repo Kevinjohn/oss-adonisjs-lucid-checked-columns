@@ -37,8 +37,8 @@ test.group('jsonColumn', () => {
   })
 
   test('refuses a written value that has no JSON encoding', ({ assert }) => {
-    const anything = (value: unknown): value is unknown => value !== null
-    const options = jsonColumn('heroes', 'origin', anything)
+    const acceptsAnyValue = (value: unknown): value is unknown => value !== null
+    const options = jsonColumn('heroes', 'origin', acceptsAnyValue)
     assert.throws(
       () => options.prepare(() => 'Gotham'),
       'Cannot persist undefined JSON in heroes.origin'
@@ -67,8 +67,8 @@ test.group('jsonColumn', () => {
   })
 
   test('wraps an encoding error in a column error with the original as its cause', ({ assert }) => {
-    const anything = (value: unknown): value is unknown => value !== null
-    const options = jsonColumn('heroes', 'origin', anything)
+    const acceptsAnyValue = (value: unknown): value is unknown => value !== null
+    const options = jsonColumn('heroes', 'origin', acceptsAnyValue)
     const cycle: Record<string, unknown> = {}
     cycle.self = cycle
     for (const value of [1n, cycle]) {
@@ -105,7 +105,7 @@ test.group('jsonColumn', () => {
 test.group('jsonColumn on a Lucid model', () => {
   // An in-memory adapter instead of a database driver: Lucid's own save and hydration paths run
   // the column hooks, which is the boundary under test. Driver behaviour is not covered.
-  function heroModel() {
+  function createHeroModel() {
     const rows = new Map<number, Record<string, unknown>>()
     class Hero extends BaseModel {
       @column({ isPrimary: true })
@@ -126,7 +126,7 @@ test.group('jsonColumn on a Lucid model', () => {
   }
 
   test('save stores the encoding and hydration decodes it', async ({ assert }) => {
-    const { Hero, rows } = heroModel()
+    const { Hero, rows } = createHeroModel()
     const hero = new Hero()
     hero.aliases = ['Batman', 'Robin']
     await hero.save()
@@ -139,7 +139,7 @@ test.group('jsonColumn on a Lucid model', () => {
   test('save refuses an invalid value and hydration refuses a malformed row', async ({
     assert,
   }) => {
-    const { Hero, rows } = heroModel()
+    const { Hero, rows } = createHeroModel()
     const hero = new Hero()
     hero.aliases = ['Joker'] as never
     await assert.rejects(() => hero.save(), 'Invalid persisted JSON in heroes.aliases')

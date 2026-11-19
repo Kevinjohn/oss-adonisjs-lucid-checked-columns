@@ -39,7 +39,7 @@ Scope: the column options Lucid calls on model save and hydration; both directio
 
 ```mermaid
 flowchart TD
-    A["isoDateColumn or isoTimestampColumn(table, column)"] --> B["checkedColumn(table, column, kind, isIsoDate or isIsoTimestamp)"]
+    A["isoDateColumn or isoTimestampColumn(table, column)"] --> B["createIsoColumnOptions with table, column, kind and acceptsValue"]
     B --> C["prepare and consume are the same function"]
     C --> D{"value === null?"}
     D -->|Yes| E["return null"]

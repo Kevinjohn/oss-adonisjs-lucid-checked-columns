@@ -12,7 +12,7 @@ const standardBin = '/usr/bin'
 const commands = ['awk', 'basename', 'cut', 'git', 'ls', 'mkdir', 'node', 'rm', 'sed']
 const validDigest = 'a'.repeat(64)
 
-async function fixture(shasum?: 'fail' | 'empty' | 'malformed' | 'valid') {
+async function makeReleaseCheckFixture(shasum?: 'fail' | 'empty' | 'malformed' | 'valid') {
   const cwd = await mkdtemp(join(tmpdir(), 'checked-columns-release-'))
   const bin = join(cwd, 'bin')
   await mkdir(bin)
@@ -66,7 +66,7 @@ async function fixture(shasum?: 'fail' | 'empty' | 'malformed' | 'valid') {
 }
 
 test('release readiness prints a checked SHA-256 in a successful dry run', async ({ assert }) => {
-  const { cwd, path } = await fixture('valid')
+  const { cwd, path } = await makeReleaseCheckFixture('valid')
   try {
     const result = spawnSync('/bin/bash', [releaseScript], {
       cwd,
@@ -88,7 +88,7 @@ test('release readiness fails after packing when checksum is missing, fails, emp
   assert,
 }) => {
   for (const kind of [undefined, 'fail', 'empty', 'malformed'] as const) {
-    const { cwd, path } = await fixture(kind)
+    const { cwd, path } = await makeReleaseCheckFixture(kind)
     try {
       const result = spawnSync('/bin/bash', [releaseScript], {
         cwd,
