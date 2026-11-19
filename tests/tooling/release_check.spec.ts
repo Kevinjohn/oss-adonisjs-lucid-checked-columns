@@ -9,13 +9,23 @@ const root = fileURLToPath(new URL('../../', import.meta.url))
 const releaseScript = join(root, 'bin/release_check.sh')
 const nodeBin = join(process.execPath, '..')
 const standardBin = '/usr/bin'
-const commands = ['awk', 'basename', 'cut', 'git', 'ls', 'mkdir', 'node', 'rm', 'sed']
+const commands = ['awk', 'basename', 'bash', 'cut', 'git', 'ls', 'mkdir', 'node', 'rm', 'sed']
 const validDigest = 'a'.repeat(64)
 
 async function makeReleaseCheckFixture(shasum?: 'fail' | 'empty' | 'malformed' | 'valid') {
   const cwd = await mkdtemp(join(tmpdir(), 'checked-columns-release-'))
   const bin = join(cwd, 'bin')
   await mkdir(bin)
+  await writeFile(
+    join(bin, 'release_consumer_smoke.sh'),
+    [
+      '#!/bin/bash',
+      '[[ "$1" == tmp/release/candidate.tgz && -f "$1" ]] || exit 99',
+      ': > "$PWD/smoke-attempted"',
+      'exit "${RELEASE_CONSUMER_TEST_EXIT:-0}"',
+      '',
+    ].join('\n')
+  )
 
   for (const command of commands) {
     const from = command === 'node' ? join(nodeBin, command) : join(standardBin, command)
@@ -65,20 +75,43 @@ async function makeReleaseCheckFixture(shasum?: 'fail' | 'empty' | 'malformed' |
   return { cwd, path: bin }
 }
 
+test('release readiness withholds outputs when the packed consumer fails', async ({ assert }) => {
+  const { cwd, path } = await makeReleaseCheckFixture('valid')
+  try {
+    const output = join(cwd, 'github-output')
+    await writeFile(output, '')
+    const rejected = spawnSync('/bin/bash', [releaseScript], {
+      cwd,
+      env: { ...process.env, PATH: path, GITHUB_OUTPUT: output, RELEASE_CONSUMER_TEST_EXIT: '27' },
+      encoding: 'utf8',
+    })
+    assert.equal(rejected.status, 27, rejected.stderr)
+    assert.notInclude(rejected.stdout, 'ready:')
+    assert.equal(await readFile(output, 'utf8'), '')
+    await readFile(join(cwd, 'smoke-attempted'))
+  } finally {
+    await rm(cwd, { recursive: true, force: true })
+  }
+})
+
 test('release readiness prints a checked SHA-256 in a successful dry run', async ({ assert }) => {
   const { cwd, path } = await makeReleaseCheckFixture('valid')
   try {
+    const output = join(cwd, 'github-output')
+    await writeFile(output, '')
     const result = spawnSync('/bin/bash', [releaseScript], {
       cwd,
-      env: { ...process.env, PATH: path },
+      env: { ...process.env, PATH: path, GITHUB_OUTPUT: output, RELEASE_CONSUMER_TEST_EXIT: '0' },
       encoding: 'utf8',
     })
 
     assert.equal(result.status, 0, result.stderr)
     assert.include(result.stdout, 'ready: v0.2.0 tmp/release/candidate.tgz')
     await readFile(join(cwd, 'pack-completed'))
+    await readFile(join(cwd, 'smoke-attempted'))
     const notes = await readFile(join(cwd, 'tmp/release/notes.md'), 'utf8')
     assert.include(notes, `SHA-256: \`${validDigest}\``)
+    assert.equal(await readFile(output, 'utf8'), 'version=0.2.0\ntarball=candidate.tgz\n')
   } finally {
     await rm(cwd, { recursive: true, force: true })
   }

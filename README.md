@@ -145,6 +145,15 @@ Markdown in `user-stories/`. Formatter configuration,
 `package.json`, and `pnpm-lock.yaml` changes select the full format check. `--static` skips the full
 suite and build while still running specs changed in the diff.
 
+The release gate installs its packed candidate in a scratch Lucid SQLite consumer and checks the
+public declarations and a real model save and read. To run that check against a local candidate:
+
+```sh
+pnpm build
+pnpm pack --pack-destination tmp/release
+bash bin/release_consumer_smoke.sh tmp/release/*.tgz
+```
+
 ## License
 
 MIT

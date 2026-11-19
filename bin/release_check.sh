@@ -26,6 +26,7 @@ if [[ ! "$CHECKSUM" =~ ^[0-9a-f]{64}$ ]]; then
 fi
 printf '\n## Install\n\n```sh\npnpm add https://github.com/%s/releases/download/v%s/%s\n```\n\nSHA-256: `%s`\n' \
   "$REPO" "$VERSION" "$(basename "$TARBALL")" "$CHECKSUM" >> tmp/release/notes.md
+bash bin/release_consumer_smoke.sh "$TARBALL"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
   { echo "version=$VERSION"; echo "tarball=$(basename "$TARBALL")"; } >> "$GITHUB_OUTPUT"; fi
 echo "ready: v$VERSION $TARBALL"
