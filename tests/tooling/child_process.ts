@@ -6,7 +6,7 @@ type ChildOutput = {
   completion: Promise<{ code: number | null; signal: NodeJS.Signals | null; text: string }>
 }
 
-export async function outputOf(child: ChildProcess): Promise<ChildOutput> {
+export async function readChildOutput(child: ChildProcess): Promise<ChildOutput> {
   let output = ''
   child.stdout?.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))
   child.stderr?.setEncoding('utf8').on('data', (chunk: string) => (output += chunk))

@@ -40,26 +40,25 @@ export type JsonValidator<T> = (value: unknown) => value is T
 export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
   typeof value === 'boolean'
 
-/** Accepts exactly the listed strings or numbers. */
+/** Accepts exactly the strings or numbers listed when the guard is created. */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
 ): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
-  return ((value: unknown) => {
-    for (let index = 0; index < values.length; index++) {
-      if (!Object.hasOwn(values, index)) continue
-      const entry = values[index]
-      if (entry === value || (Number.isNaN(entry) && Number.isNaN(value))) return true
-    }
-    return false
-  }) as JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>>
+  const allowed = new Set<unknown>()
+  for (let index = 0; index < values.length; index++) {
+    if (Object.hasOwn(values, index)) allowed.add(values[index])
+  }
+  return ((value: unknown) => allowed.has(value)) as JsonValidator<
+    IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>
+  >
 }
 
-/** Accepts an array whose every element passes `validate`. */
-export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<DenseArray<T>> {
+/** Accepts an array whose every element passes `acceptsValue`. */
+export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<DenseArray<T>> {
   return (value): value is DenseArray<T> => {
     if (!Array.isArray(value)) return false
     for (let index = 0; index < value.length; index++) {
-      if (!Object.hasOwn(value, index) || !validate(value[index])) return false
+      if (!Object.hasOwn(value, index) || !acceptsValue(value[index])) return false
     }
     return true
   }
@@ -69,25 +68,25 @@ export function isArrayOf<T>(validate: JsonValidator<T>): JsonValidator<DenseArr
  * Column options that store one model property as JSON text and refuse an invalid value in both
  * directions. `null` passes through unchanged. `table` and `column` only name the column in errors.
  * A written value is validated before and after encoding. Under unchanged host validation rules,
- * the encoded value passes read-side validation; `consume` continues to validate every read.
+ * the encoded value passes read-side validation. The `consume` hook still validates every read.
  * @throws Error `Invalid persisted JSON in <table>.<column>` when a written value or its JSON
- *   encoding fails `validate`, a stored value fails `validate`, or stored text is not JSON.
+ *   encoding fails `acceptsValue`, a stored value fails `acceptsValue`, or stored text is not JSON.
  * @throws Error `Cannot persist undefined JSON in <table>.<column>` when a written value passes
- *   `validate` but has no JSON encoding.
+ *   `acceptsValue` but has no JSON encoding.
  * @throws Error `Cannot encode JSON in <table>.<column>` when encoding a written value throws (a
  *   BigInt or a cycle, for example); the original error is the `cause`.
  */
 export function jsonColumn<T>(
   table: string,
   column: string,
-  validate: JsonValidator<T>
+  acceptsValue: JsonValidator<T>
 ): JsonColumnOptions<T, JsonColumnInput<T>> {
-  const invalid = () => new Error(`Invalid persisted JSON in ${table}.${column}`)
+  const createInvalidJsonError = () => new Error(`Invalid persisted JSON in ${table}.${column}`)
   return {
     meta: JSON_COLUMN,
     prepare(value) {
       if (value === null) return null
-      if (!validate(value)) throw invalid()
+      if (!acceptsValue(value)) throw createInvalidJsonError()
       // The lib types promise a string, but functions and undefined serialise to undefined, and an
       // annotated declaration would narrow straight back to string on assignment.
       let encoded: string | undefined
@@ -101,7 +100,7 @@ export function jsonColumn<T>(
       }
       // Encoding can change the shape (holes and NaN become null, toJSON replaces the value): refuse
       // an encoding the read side would reject instead of storing it.
-      if (!validate(JSON.parse(encoded))) throw invalid()
+      if (!acceptsValue(JSON.parse(encoded))) throw createInvalidJsonError()
       return encoded
     },
     consume(value) {
@@ -110,9 +109,9 @@ export function jsonColumn<T>(
       try {
         if (typeof value === 'string') parsed = JSON.parse(value)
       } catch {
-        throw invalid()
+        throw createInvalidJsonError()
       }
-      if (!validate(parsed)) throw invalid()
+      if (!acceptsValue(parsed)) throw createInvalidJsonError()
       return parsed
     },
   }

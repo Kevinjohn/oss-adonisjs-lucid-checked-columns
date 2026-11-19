@@ -38,15 +38,22 @@ export function isIsoTimestamp(value: unknown): value is IsoTimestamp {
   return new Date(milliseconds).toISOString() === value
 }
 
-function checkedColumn<T extends string>(
-  table: string,
-  column: string,
-  kind: 'date' | 'timestamp',
-  validate: (value: unknown) => boolean
-): IsoColumnOptions<T> {
+interface IsoColumnInput {
+  table: string
+  column: string
+  kind: 'date' | 'timestamp'
+  acceptsValue: (value: unknown) => boolean
+}
+
+function createIsoColumnOptions<T extends string>({
+  table,
+  column,
+  kind,
+  acceptsValue,
+}: IsoColumnInput): IsoColumnOptions<T> {
   const consume = (value: unknown) => {
     if (value === null) return null
-    if (!validate(value)) throw new Error(`Invalid persisted ${kind} in ${table}.${column}`)
+    if (!acceptsValue(value)) throw new Error(`Invalid persisted ${kind} in ${table}.${column}`)
     return value as T
   }
   return { prepare: consume, consume }
@@ -61,7 +68,7 @@ export function isoDateColumn<T extends string = string>(
   table: string,
   column: string
 ): IsoColumnOptions<T> {
-  return checkedColumn<T>(table, column, 'date', isIsoDate)
+  return createIsoColumnOptions<T>({ table, column, kind: 'date', acceptsValue: isIsoDate })
 }
 
 /**
@@ -73,5 +80,10 @@ export function isoTimestampColumn<T extends string = string>(
   table: string,
   column: string
 ): IsoColumnOptions<T> {
-  return checkedColumn<T>(table, column, 'timestamp', isIsoTimestamp)
+  return createIsoColumnOptions<T>({
+    table,
+    column,
+    kind: 'timestamp',
+    acceptsValue: isIsoTimestamp,
+  })
 }
