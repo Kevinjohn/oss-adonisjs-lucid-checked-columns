@@ -91,10 +91,15 @@ declare launchedOn: PostLaunchDate
 the host's launch date. The shown declaration asserts that host-specific cutoff; it does not enforce
 it. Host code must enforce any stronger rule on values before writing and after reading them.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
-tuples of exact literals infer their listed values; dynamic arrays and tuples with widened or
-union-typed elements validate membership without excluding their element type from the false branch.
+tuples of exact literals infer their listed values. Dynamic arrays and tuples with widened,
+pattern-typed, or union-typed elements preserve their element type in the false branch.
+The same applies when the allowlist type is a union of different tuples.
 Their validated value type is distinct, so validate a value before passing it to a column typed
 from such an allowlist.
+
+`isArrayOf` narrows successful values to a validated dense array. A rejected value may still be
+an array, for example if it has holes. JSON column preparation accepts ordinary arrays and checks
+their elements and density at runtime.
 
 ## Errors
 
@@ -134,8 +139,8 @@ pnpm build
 `pnpm check:changed [--static] [base]` selects checks for files changed since `base` (default
 `origin/main`). It formats changed files, runs lint and typecheck for relevant inputs, and runs
 changed specs only when every changed path is a present spec; otherwise it selects the full test
-suite. It builds when a changed path is outside `tests/`, `.github/`, or a root-level Markdown file, so
-nested documentation such as user stories currently selects a build. Formatter configuration,
+suite. It builds when a changed path is outside `tests/`, `.github/`, root-level Markdown, and
+Markdown in `user-stories/`. Formatter configuration,
 `package.json`, and `pnpm-lock.yaml` changes select the full format check. `--static` skips the full
 suite and build while still running specs changed in the diff.
 

@@ -266,6 +266,69 @@ test.group('validators', () => {
     }
   })
 
+  test('alternative exact tuples preserve possible values on a membership miss', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    function enabledLocalePolicy(locales: readonly ['en-GB'] | readonly ['en-NZ']) {
+      const isEnabled = isOneOf(locales)
+      return (locale: 'en-GB' | 'en-NZ' | number) => {
+        if (isEnabled(locale)) {
+          expectTypeOf(locale).toExtend<'en-GB' | 'en-NZ'>()
+          return true
+        }
+        expectTypeOf(locale).toEqualTypeOf<'en-GB' | 'en-NZ' | number>()
+        return false
+      }
+    }
+
+    const isEnabled = enabledLocalePolicy(['en-GB'])
+    assert.isTrue(isEnabled('en-GB'))
+    assert.isFalse(isEnabled('en-NZ'))
+  })
+
+  test('singleton patterns preserve the false branch while singleton literals narrow it', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    type Locale = `en-${string}`
+    const enabled: readonly [Locale] = ['en-GB']
+    const isEnabled = isOneOf(enabled)
+    const locale = 'en-NZ' as Locale | number
+    if (isEnabled(locale)) {
+      expectTypeOf(locale).toExtend<Locale>()
+      assert.fail('unlisted locale validated')
+    } else {
+      expectTypeOf(locale).toEqualTypeOf<Locale | number>()
+    }
+
+    const isBritishEnglish = isOneOf(['en-GB'])
+    const exact = 'en-NZ' as 'en-GB' | 'en-NZ'
+    if (isBritishEnglish(exact)) {
+      expectTypeOf(exact).toEqualTypeOf<'en-GB'>()
+    } else {
+      expectTypeOf(exact).toEqualTypeOf<'en-NZ'>()
+    }
+  })
+
+  test('failed dense array validation preserves the array type in the false branch', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    const isFlags = isArrayOf(isBoolean)
+    const sparse: boolean[] | string = new Array<boolean>(2) as boolean[] | string
+    if (isFlags(sparse)) {
+      expectTypeOf(sparse).toExtend<boolean[]>()
+      assert.fail('sparse array validated')
+    } else {
+      expectTypeOf(sparse).toEqualTypeOf<boolean[] | string>()
+    }
+
+    const options = jsonColumn('heroes', 'flags', isArrayOf(isFlags))
+    const ordinary: boolean[][] = [[true, false]]
+    assert.equal(options.prepare(ordinary), '[[true,false]]')
+  })
+
   test('isArrayOf accepts only arrays whose every element is valid', ({ assert }) => {
     const isFlags = isArrayOf(isBoolean)
     assert.isTrue(isFlags([]))

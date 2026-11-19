@@ -39,7 +39,7 @@ const isLintable = (path: string) =>
 
 /** Files that cannot change the built package. */
 function outsidePackage(path: string): boolean {
-  return /^(tests|\.github)\//.test(path) || /^[^/]+\.md$/.test(path)
+  return /^(tests|\.github)\//.test(path) || /^(?:user-stories\/.+|[^/]+)\.md$/.test(path)
 }
 
 export interface PlanOptions {
