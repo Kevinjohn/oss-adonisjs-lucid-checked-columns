@@ -2,10 +2,16 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-11-19
+
 - Preserve template-literal patterns and members of alternative allowlists in the false branch of
   `isOneOf`. Preserve potentially sparse arrays in the false branch of `isArrayOf`. JSON column
   preparation still validates ordinary arrays.
 - Skip package builds for story Markdown changes unless the diff also changes a package input.
+
+- Snapshot allowlists when constructing `isOneOf` validators so later changes to the source array
+  cannot change what an existing validator accepts.
+- Run the packed release in a Lucid SQLite consumer before publishing.
 
 ## 0.2.0 - 2026-11-16
 
