@@ -1,0 +1,20 @@
+{
+  "name": "checked-columns-release-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "smoke": "tsc && node build/model.js"
+  },
+  "dependencies": {
+    "@adonisjs/core": "^7.0.1",
+    "@adonisjs/lucid": "^22.4.2",
+    "@kevinjohn/adonisjs-lucid-checked-columns": "file:./candidate.tgz",
+    "better-sqlite3": "^13.0.3",
+    "luxon": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}
