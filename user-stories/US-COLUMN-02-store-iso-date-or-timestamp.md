@@ -48,4 +48,4 @@ flowchart TD
     F -->|Yes| H["return value unchanged"]
 ```
 
-**Code references:** [isoDateColumn](../src/iso_column.ts#L55), [isoTimestampColumn](../src/iso_column.ts#L67), [isIsoDate](../src/iso_column.ts#L13), [isIsoTimestamp](../src/iso_column.ts#L29).
+**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).

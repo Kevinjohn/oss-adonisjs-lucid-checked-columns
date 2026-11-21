@@ -2,20 +2,20 @@
 
 ## Actors and boundaries
 
-- **Application developer**: declares Lucid model properties with the column helpers and chooses each JSON validator. The package provides no provider, routes, UI or `configure` hook.
+- **Application developer**: declares Lucid model properties with the column helpers and chooses each JSON type predicate. The package provides no provider, routes, UI or `configure` hook.
 - **Lucid**: calls a column's `prepare` when a model is saved and `consume` when a model is hydrated from a row. Query-builder writes do not call them.
 
 ## Shared source map
 
 - Public exports: [`index.ts`](../index.ts).
-- JSON column, validators and the JSON column check: [`src/json_column.ts`](../src/json_column.ts).
+- JSON column, type predicates and the JSON column check: [`src/json_column.ts`](../src/json_column.ts).
 - ISO date and timestamp columns and predicates: [`src/iso_column.ts`](../src/iso_column.ts).
 - Contracts, error messages and limits: [README](../README.md). There is no separate guide.
 - Test evidence: [`tests/json_column.spec.ts`](../tests/json_column.spec.ts), [`tests/iso_column.spec.ts`](../tests/iso_column.spec.ts).
 
 ## Availability
 
-`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. Validators and predicates can be called directly without declaring a model column. Errors created by the column helpers are plain `Error` objects naming `<table>.<column>`; the `table` and `column` arguments are used only for these messages. An exception thrown by a supplied JSON validator propagates unchanged.
+`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. Type predicates and predicates can be called directly without declaring a model column. Errors created by the column helpers are plain `Error` objects naming `<table>.<column>`; the `table` and `column` arguments are used only for these messages. An exception thrown by a supplied JSON type predicate propagates unchanged.
 
 ## Availability definitions
 

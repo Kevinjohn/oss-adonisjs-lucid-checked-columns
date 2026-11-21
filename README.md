@@ -56,9 +56,9 @@ The `table` and `column` arguments only name the column in error messages.
 | Export                                      | Behaviour                                                                                                                                                                                               |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `jsonColumn(table, column, validate)`       | Writes `JSON.stringify(value)`; reads with `JSON.parse` when the driver returns text. `null` passes through. The value must pass `validate` both ways.                                                  |
-| `isBoolean`                                 | Validator: `true` or `false`.                                                                                                                                                                           |
-| `isOneOf(values)`                           | Validator: exactly one of the listed strings or numbers.                                                                                                                                                |
-| `isArrayOf(validate)`                       | Validator: an array whose every element passes `validate`.                                                                                                                                              |
+| `isBoolean`                                 | Type predicate: `true` or `false`.                                                                                                                                                                      |
+| `isOneOf(values)`                           | Type predicate: exactly one of the listed strings or numbers.                                                                                                                                           |
+| `isArrayOf(validate)`                       | Type predicate: an array whose every element passes `validate`.                                                                                                                                         |
 | `isJsonColumn(options)`                     | Whether a column was declared with `jsonColumn`. Pass `Model.$getColumn(name)`; use it to find the JSON columns when writing rows outside the model.                                                    |
 | `isoDateColumn(table, column)`              | Keeps a real calendar date written `YYYY-MM-DD` in years `0001`–`9999` unchanged; refuses anything else. `null` passes through.                                                                         |
 | `isoTimestampColumn(table, column)`         | Keeps a UTC instant exactly as `Date#toISOString()` writes it (three millisecond digits, trailing `Z`), including its signed six-digit extended-year form outside `0000`–`9999`; refuses anything else. |
@@ -69,12 +69,13 @@ is parsed as JSON before validation. A decoded native scalar string is ambiguous
 text: for example, the string `true` parses as the boolean `true`, while `red` is not valid JSON.
 Decoded scalar strings from native JSON columns are not a supported representation; the helper does
 not fall back to treating unparseable text as a decoded string. This documents the helper's value
-contract and does not establish behavior for a particular database driver.
+contract. Release CI additionally installs the packed package into a Lucid SQLite consumer and
+checks real saves and hydration using text columns; no equivalent test claim is made for other drivers.
 
 On write, the value and its JSON encoding are both checked. The encoded text passes read-side
 validation under unchanged host validation rules; the read side continues to validate each value.
 
-Any `(value: unknown) => value is T` function is a validator, so a host can supply its own.
+Any `(value: unknown) => value is T` function is a type predicate, so a host can supply its own.
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
 The generic is a compile-time assertion: the helpers still check canonical ISO syntax, but cannot
 prove additional rules encoded in a host subtype. For example, the host must check a business cutoff
@@ -91,8 +92,8 @@ declare launchedOn: PostLaunchDate
 the host's launch date. The shown declaration asserts that host-specific cutoff; it does not enforce
 it. Host code must enforce any stronger rule on values before writing and after reading them.
 The ISO predicates narrow successful values to distinct validated string types. For `isOneOf`,
-tuples of exact literals infer their listed values. The guard captures membership at creation.
-Create a new guard after changing the allowlist. Dynamic arrays and tuples with widened,
+tuples of exact literals infer their listed values. The type predicate captures membership at creation.
+Create a new type predicate after changing the allowlist. Dynamic arrays and tuples with widened,
 pattern-typed, or union-typed elements preserve their element type in the false branch.
 The same applies when the allowlist type is a union of different tuples.
 Their validated value type is distinct, so validate a value before passing it to a column typed
@@ -102,14 +103,20 @@ from such an allowlist.
 an array, for example if it has holes. JSON column preparation accepts ordinary arrays and checks
 their elements and density at runtime.
 
+On the development branch (next release), the root and the type-only
+`@kevinjohn/adonisjs-lucid-checked-columns/types` entry both expose
+`JsonValidator`, `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
+same type identities. The branded ISO types describe values narrowed by their respective predicates.
+
 ## Errors
 
-Each refusal throws a plain `Error`:
+Each package-created storage refusal throws a plain `Error` with the messages below; there are no HTTP
+exceptions or stable storage error codes. Errors thrown by a supplied type predicate propagate unchanged.
 
 - `Invalid persisted JSON in <table>.<column>`: a written value, its JSON encoding or a stored
-  value fails the validator, or stored text is not JSON. The encoding is checked because JSON can
+  value fails the type predicate, or stored text is not JSON. The encoding is checked because JSON can
   change a value's shape: array holes and `NaN` become `null`, and `toJSON` replaces the value.
-- `Cannot persist undefined JSON in <table>.<column>`: a written value passes the validator but has
+- `Cannot persist undefined JSON in <table>.<column>`: a written value passes the type predicate but has
   no JSON encoding (a function, for example).
 - `Cannot encode JSON in <table>.<column>`: encoding a written value threw (a `BigInt` or a cycle,
   for example). The original error is the `cause`.

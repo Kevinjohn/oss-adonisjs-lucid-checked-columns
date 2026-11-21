@@ -33,14 +33,18 @@ declare const denseArray: unique symbol
 type DenseArray<T> = T[] & { readonly [denseArray]: true }
 type JsonColumnInput<T> = T extends DenseArray<infer Element> ? JsonColumnInput<Element>[] : T
 
-/** A type guard for the value one JSON column may hold. */
+/** A TypeScript type predicate narrowing unknown values to the type one JSON column may hold. */
 export type JsonValidator<T> = (value: unknown) => value is T
 
 /** Accepts `true` and `false` only. */
 export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
   typeof value === 'boolean'
 
-/** Accepts exactly the strings or numbers listed when the guard is created. */
+/**
+ * Accepts exactly the strings or numbers listed when the type predicate is created.
+ * Literal tuples narrow to their literal union; widened lists narrow to a validated member
+ * without excluding their entire element type on rejection.
+ */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
 ): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
@@ -53,7 +57,7 @@ export function isOneOf<const V extends readonly (string | number)[]>(
   >
 }
 
-/** Accepts an array whose every element passes `acceptsValue`. */
+/** Narrows to a dense array whose every element passes `acceptsValue`. Sparse arrays are rejected. */
 export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<DenseArray<T>> {
   return (value): value is DenseArray<T> => {
     if (!Array.isArray(value)) return false

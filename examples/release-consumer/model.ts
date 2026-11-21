@@ -14,7 +14,13 @@ import {
   isoDateColumn,
   isoTimestampColumn,
   jsonColumn,
+  type IsoDate,
+  type IsoTimestamp,
 } from '@kevinjohn/adonisjs-lucid-checked-columns'
+import type {
+  IsoDate as SubpathDate,
+  IsoTimestamp as SubpathTimestamp,
+} from '@kevinjohn/adonisjs-lucid-checked-columns/types'
 
 const app = new AppFactory().create(new URL('../', import.meta.url), () => {})
 const db = new Database(
@@ -65,7 +71,15 @@ try {
   const timestamp = '2026-11-19T12:00:00.000Z'
   assert(isIsoDate(date))
   assert(isIsoTimestamp(timestamp))
-  const saved = await ReleaseRecord.create({ labels: ['verified'], date, timestamp })
+  const rootDate: IsoDate = date
+  const rootTimestamp: IsoTimestamp = timestamp
+  const subpathDate: SubpathDate = rootDate
+  const subpathTimestamp: SubpathTimestamp = rootTimestamp
+  const saved = await ReleaseRecord.create({
+    labels: ['verified'],
+    date: subpathDate,
+    timestamp: subpathTimestamp,
+  })
   const stored = await db.from(ReleaseRecord.table).where('id', saved.id).firstOrFail()
   assert.deepEqual(stored, { id: saved.id, labels: '["verified"]', date, timestamp })
 
@@ -74,6 +88,15 @@ try {
   assert.deepEqual(loaded.labels, ['verified'])
   assert.equal(loaded.date, date)
   assert.equal(loaded.timestamp, timestamp)
+  await assert.rejects(
+    ReleaseRecord.create({ labels: ['verified'], date: 'invalid', timestamp }),
+    /Invalid persisted date in release_records.date/
+  )
+  await db.from(ReleaseRecord.table).where('id', saved.id).update({ labels: 'invalid JSON' })
+  await assert.rejects(
+    ReleaseRecord.findOrFail(saved.id),
+    /Invalid persisted JSON in release_records.labels/
+  )
   console.log('Packed checked columns passed the Lucid SQLite round trip.')
 } finally {
   await db.manager.closeAll()
