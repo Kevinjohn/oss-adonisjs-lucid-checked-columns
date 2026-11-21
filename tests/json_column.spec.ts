@@ -20,12 +20,12 @@ test.group('jsonColumn', () => {
     assert.isTrue(jsonColumn('heroes', 'active', isBoolean).consume(true))
   })
 
-  test('refuses a written value the validator rejects', ({ assert }) => {
+  test('refuses a written value the type predicate rejects', ({ assert }) => {
     const options = jsonColumn('heroes', 'active', isBoolean)
     assert.throws(() => options.prepare('yes' as never), 'Invalid persisted JSON in heroes.active')
   })
 
-  test('refuses a stored value the validator rejects', ({ assert }) => {
+  test('refuses a stored value the type predicate rejects', ({ assert }) => {
     const options = jsonColumn('heroes', 'active', isBoolean)
     assert.throws(() => options.consume('"yes"'), 'Invalid persisted JSON in heroes.active')
     assert.throws(() => options.consume(1), 'Invalid persisted JSON in heroes.active')
@@ -45,7 +45,7 @@ test.group('jsonColumn', () => {
     )
   })
 
-  test('refuses a written value whose encoding the validator rejects', ({ assert }) => {
+  test('refuses a written value whose encoding the type predicate rejects', ({ assert }) => {
     const flags = jsonColumn('heroes', 'flags', isArrayOf(isBoolean))
     // A hole encodes as null.
     assert.throws(() => flags.prepare(Array(1)), 'Invalid persisted JSON in heroes.flags')
@@ -194,7 +194,7 @@ test.group('jsonColumn on a Lucid model', () => {
   })
 })
 
-test.group('validators', () => {
+test.group('type predicates', () => {
   test('isBoolean accepts only true and false', ({ assert }) => {
     assert.isTrue(isBoolean(true))
     assert.isTrue(isBoolean(false))
@@ -355,12 +355,12 @@ test.group('validators', () => {
     if (accepts(listed)) {
       expectTypeOf(listed).toEqualTypeOf<1>()
     } else {
-      assert.fail('the original guard rejected a removed member')
+      assert.fail('the original type predicate rejected a removed member')
     }
 
     const unlisted = 2 as 1 | 2
     if (accepts(unlisted)) {
-      assert.fail('the original guard accepted an unlisted value')
+      assert.fail('the original type predicate accepted an unlisted value')
     } else {
       expectTypeOf(unlisted).toEqualTypeOf<2>()
     }

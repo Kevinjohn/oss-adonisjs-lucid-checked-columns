@@ -8,7 +8,9 @@ export type IsoColumnOptions<T extends string> = {
 
 declare const isoDateBrand: unique symbol
 declare const isoTimestampBrand: unique symbol
+/** A calendar date narrowed by `isIsoDate`, in canonical YYYY-MM-DD form. */
 export type IsoDate = string & { readonly [isoDateBrand]: true }
+/** A UTC instant narrowed by `isIsoTimestamp`, exactly as Date#toISOString returns it. */
 export type IsoTimestamp = string & { readonly [isoTimestampBrand]: true }
 
 /**

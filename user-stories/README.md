@@ -1,6 +1,6 @@
 # User story catalogue
 
-Source baseline: `2c6247d73329dba4273a20e1da51206ccc056947` (origin/main, 2026-11-14). Scope: the public exports in `index.ts`: the checked JSON column and its validators, the ISO date and timestamp columns and their predicates, and the JSON column check. Source-reviewed only; no runtime journeys were exercised for this catalogue.
+Source baseline: `2c6247d73329dba4273a20e1da51206ccc056947` (origin/main, 2026-11-14). Scope: the public exports in `index.ts`: the checked JSON column and its type predicates, the ISO date and timestamp columns and their predicates, and the JSON column check. Source-reviewed only; no runtime journeys were exercised for this catalogue.
 
 ## Index
 

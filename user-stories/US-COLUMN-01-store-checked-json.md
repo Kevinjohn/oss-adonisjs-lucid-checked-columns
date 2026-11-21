@@ -1,24 +1,24 @@
 # US-COLUMN-01 — Store a checked JSON property
 
-As an application developer, I want a model property stored as JSON and checked against a validator when it is written and when it is read so that an invalid value is never saved and a corrupt row fails loudly instead of reaching the application.
+As an application developer, I want a model property stored as JSON and checked against a type predicate when it is written and when it is read so that an invalid value is refused when Lucid runs its column hooks and a corrupt row fails hydration instead of reaching the application.
 
 **Status:** Current.
 **Access:** Application developer who declares the Lucid model. Applies to model saves and model hydration only.
-**Entry:** `@column(jsonColumn(table, column, validate))` on a Lucid model property, with a validator such as `isBoolean`, `isOneOf(values)`, `isArrayOf(validate)` or any host type guard.
+**Entry:** `@column(jsonColumn(table, column, validate))` on a Lucid model property, with a type predicate such as `isBoolean`, `isOneOf(values)`, `isArrayOf(validate)` or any host type guard.
 **Documentation:** [Use](../README.md#use), [API](../README.md#api), [Errors](../README.md#errors), [Limits](../README.md#limits).
 **Source:** [JSON column](../src/json_column.ts).
 **Coverage:** [JSON column tests](../tests/json_column.spec.ts).
 
 ## Acceptance criteria
 
-| Input      | Control    | Required/default/conditions                                                                                                                                                                                                                 |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `table`    | Argument 1 | Required string. Table name used only in error messages.                                                                                                                                                                                    |
-| `column`   | Argument 2 | Required string. Column name used only in error messages.                                                                                                                                                                                   |
-| `validate` | Argument 3 | Required TypeScript type guard `(value: unknown) => value is T`. Use `isBoolean` for booleans, `isOneOf(values)` for listed strings or numbers, `isArrayOf(validate)` to apply another validator to every array element, or your own guard. |
+| Input      | Control    | Required/default/conditions                                                                                                                                                                                                                               |
+| ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `table`    | Argument 1 | Required string. Table name used only in error messages.                                                                                                                                                                                                  |
+| `column`   | Argument 2 | Required string. Column name used only in error messages.                                                                                                                                                                                                 |
+| `validate` | Argument 3 | Required TypeScript type guard `(value: unknown) => value is T`. Use `isBoolean` for booleans, `isOneOf(values)` for listed strings or numbers, `isArrayOf(validate)` to apply another type predicate to every array element, or your own type predicate. |
 
 - On save, an accepted non-null value is written as `JSON.stringify(value)`. On read, every string is parsed with `JSON.parse`; a non-string value from the driver is validated as it is. `null` passes through both ways without validation.
-- The stored representation is JSON text, suitable for a text column. A decoded native scalar string is not supported: strings are always parsed as JSON, with no parse-error fallback. This value contract makes no claim about any database driver's return values.
+- The stored representation is JSON text, suitable for a text column. A decoded native scalar string is not supported: strings are always parsed as JSON, with no parse-error fallback. The packed consumer verifies SQLite text storage; other driver encodings are not claimed.
 - On save, a non-null value must pass `validate` both before encoding and after its JSON text is parsed back, so under unchanged host validation rules whatever is written can be read back. If either check fails, the save throws `Invalid persisted JSON in <table>.<column>` and nothing is written. Read-side validation still runs for every read.
 - After a value passes `validate`, an encoding that returns `undefined` (a function, for example) throws `Cannot persist undefined JSON in <table>.<column>`, and an encoding that throws (a `BigInt` or a cycle) throws `Cannot encode JSON in <table>.<column>` with the original error as `cause`.
 - On read, text that is not JSON, or a decoded value that fails `validate`, throws `Invalid persisted JSON in <table>.<column>`; the row does not hydrate.
@@ -30,7 +30,7 @@ As an application developer, I want a model property stored as JSON and checked 
 
 ```mermaid
 flowchart TD
-    A["Developer declares the property with jsonColumn and a validator"] --> B{"Saving or reading the model?"}
+    A["Developer declares the property with jsonColumn and a type predicate"] --> B{"Saving or reading the model?"}
     B -->|Saving| C{"null, or a value that can be stored as valid JSON?"}
     C -->|No| D["Save fails naming the column; nothing is written"]
     C -->|Yes| E["JSON text or null is stored"]
@@ -61,4 +61,4 @@ flowchart TD
     C3 -->|Yes| C5["return parsed"]
 ```
 
-**Code references:** [jsonColumn](../src/json_column.ts#L41), [validators](../src/json_column.ts#L16), [JsonValidator](../src/json_column.ts#L13).
+**Code references:** [jsonColumn](../src/json_column.ts#L83), [type predicates](../src/json_column.ts#L40), [JsonValidator](../src/json_column.ts#L37).
