@@ -17,8 +17,9 @@ As an application developer, I want a date or timestamp property kept as one can
 | `column` | Argument 2     | Required string. Column name used only in error messages.                                                                                                                                |
 | `T`      | Type parameter | Optional; defaults to `string`. A host string subtype for the property; it is a compile-time assertion and adds no runtime check for rules beyond the helper's canonical ISO validation. |
 
-- `isoDateColumn` accepts only a real calendar date written `YYYY-MM-DD`; month lengths and leap years are checked without depending on the host time zone.
+- `isoDateColumn` accepts only a real calendar date written `YYYY-MM-DD`; years 0001 through 9999, month lengths and Gregorian leap years are checked without depending on the host time zone.
 - `isoTimestampColumn` accepts only a string `Date#toISOString()` produces: a UTC instant with three millisecond digits and a trailing `Z`.
+- Standalone guards narrow successful input to `IsoDate` or `IsoTimestamp`. A failed guard leaves ordinary strings possible. Canonical timestamps can include year 0000 or a signed six-digit extended year if the instant round-trips exactly.
 - An accepted value is stored and returned unchanged. `null` passes through both ways.
 - Any other value, including a `Date`, a Luxon `DateTime`, an instant with an offset or a non-string value from the driver, throws `Invalid persisted date in <table>.<column>` or `Invalid persisted timestamp in <table>.<column>` on save or on read. Nothing is saved, or the row does not hydrate.
 - The helpers refuse an invalid value rather than repairing or converting it. Query-builder writes bypass them.
@@ -43,9 +44,11 @@ flowchart TD
     B --> C["prepare and consume are the same function"]
     C --> D{"value === null?"}
     D -->|Yes| E["return null"]
-    D -->|No| F{"validate(value)?"}
+    D -->|No| F{"acceptsValue(value)?"}
     F -->|No| G["throw Invalid persisted date or timestamp"]
     F -->|Yes| H["return value unchanged"]
 ```
 
-**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).
+The date predicate checks the string type, four-digit date pattern, year/month/day ranges and leap-year-adjusted month length, in that order. The timestamp predicate checks the string type, a finite `Date.parse` result and exact equality with its ISO encoding.
+
+**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [shared hooks](../src/iso_column.ts#L50), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).

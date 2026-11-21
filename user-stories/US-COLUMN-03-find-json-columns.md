@@ -15,16 +15,16 @@ As an application developer, I want to tell which model columns were declared wi
 | --------- | ---------- | ----------------------------------------------------------------------------------------------------- |
 | `options` | Argument 1 | The column's options from `Model.$getColumn(propertyName)`; `undefined` (no such column) is accepted. |
 
-- Returns true only for a column whose options came from `jsonColumn`.
-- Returns false for any other column, and for `undefined`.
-- It reports the declaration only. Encoding and validating the value for a write outside the model stay with the host, which can call the column's own `prepare`.
+- Compares the `meta.checkedColumns` string by value. Inherited declarations and options from another evaluation of the package match. Host metadata carrying the identical marker also matches.
+- A plain column, a lookalike with only `meta.json: true`, or a missing property returns false.
+- It reports matching metadata only, not the presence or validity of a column hook. Encoding and validating the value for a write outside the model stay with the host, which can call a JSON column's own `prepare`.
 
 ## User flow
 
 ```mermaid
 flowchart TD
     A["Host code prepares a row to write outside the model"] --> B["Look up each column on the model"]
-    B --> C{"Declared with jsonColumn?"}
+    B --> C{"Matching JSON column marker?"}
     C -->|Yes| D["Encode the value as the model would before writing"]
     C -->|No| E["Write the value as the column expects"]
 ```
