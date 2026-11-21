@@ -19,19 +19,31 @@ As an application developer, I want to check input before assigning it to a mode
 ```mermaid
 flowchart TD
     A["Check unknown input"] --> B{"Passes the chosen rule?"}
-    B -->|Yes| C["Use the narrowed value"]
-    B -->|No| D["Handle invalid input"]
+    B -->|True| C["Use the narrowed value"]
+    B -->|False| D["Handle invalid input"]
+    B -->|Predicate throws| E["Handle the propagated exception"]
 ```
 
 ## Code flow
 
 ```mermaid
 flowchart TD
-    A["isArrayOf with an element predicate"] --> B{"Array with each own index present?"}
-    B -->|No| C["Return false"]
-    B -->|Yes| D{"Every visited element passes?"}
-    D -->|Yes| E["Return true"]
-    D -->|No| C
+    B["isBoolean(value)"] --> B1["Return typeof value === boolean"]
+    O["isOneOf(values)"] --> O1["Snapshot own indexed members into Set"]
+    O1 --> O2["Return predicate using allowed.has(value)"]
+    A["isArrayOf(acceptsValue)"] --> A1["Return predicate"]
+    A1 --> A2{"Array.isArray(value)?"}
+    A2 -->|No| F["Return false"]
+    A2 -->|Yes| I["index = 0"]
+    I --> L{"index < value.length?"}
+    L -->|No| T["Return true"]
+    L -->|Yes| H{"Object.hasOwn(value, index)?"}
+    H -->|No| F
+    H -->|Yes| V{"acceptsValue(value[index])?"}
+    V -->|False| F
+    V -->|Throws| E["Propagate error"]
+    V -->|True| N["Increment index"]
+    N --> L
 ```
 
 The loop checks presence and membership together at each index. [Implementation](../src/json_column.ts) and [runtime and type-level cases](../tests/json_column.spec.ts).

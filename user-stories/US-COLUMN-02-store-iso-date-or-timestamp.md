@@ -44,9 +44,11 @@ flowchart TD
     B --> C["prepare and consume are the same function"]
     C --> D{"value === null?"}
     D -->|Yes| E["return null"]
-    D -->|No| F{"validate(value)?"}
+    D -->|No| F{"acceptsValue(value)?"}
     F -->|No| G["throw Invalid persisted date or timestamp"]
     F -->|Yes| H["return value unchanged"]
 ```
 
-**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).
+The date predicate checks the string type, four-digit date pattern, year/month/day ranges and leap-year-adjusted month length, in that order. The timestamp predicate checks the string type, a finite `Date.parse` result and exact equality with its ISO encoding.
+
+**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [shared hooks](../src/iso_column.ts#L50), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).
