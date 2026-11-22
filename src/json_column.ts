@@ -15,6 +15,12 @@ const JSON_COLUMN = Object.freeze({
 declare const listedValue: unique symbol
 type ListedValue<T> = T & { readonly [listedValue]: true }
 type IsUnion<T, C = T> = T extends C ? ([C] extends [T] ? false : true) : never
+type ListedMember<V extends readonly (string | number)[]> =
+  Extract<V, (string | number)[]> extends never
+    ? IsLiteralTuple<V> extends true
+      ? V[number]
+      : ListedValue<V[number]>
+    : ListedValue<V[number]>
 // Check union members together because an allowlist only contains the selected tuple.
 type IsLiteralTuple<V extends readonly (string | number)[]> = [V] extends [readonly []]
   ? true
@@ -42,19 +48,17 @@ export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
 
 /**
  * Accepts exactly the strings or numbers listed when the type predicate is created.
- * Literal tuples narrow to their literal union; widened lists narrow to a validated member
- * without excluding their entire element type on rejection.
+ * Readonly literal tuples narrow to their literal union. Mutable tuples and widened lists
+ * narrow to a validated member without excluding their entire element type on rejection.
  */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
-): JsonValidator<IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>> {
+): JsonValidator<ListedMember<V>> {
   const allowed = new Set<unknown>()
   for (let index = 0; index < values.length; index++) {
     if (Object.hasOwn(values, index)) allowed.add(values[index])
   }
-  return ((value: unknown) => allowed.has(value)) as JsonValidator<
-    IsLiteralTuple<V> extends true ? V[number] : ListedValue<V[number]>
-  >
+  return ((value: unknown) => allowed.has(value)) as JsonValidator<ListedMember<V>>
 }
 
 /** Narrows to a dense array whose every element passes `acceptsValue`. Sparse arrays are rejected. */

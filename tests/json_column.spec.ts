@@ -353,7 +353,7 @@ test.group('type predicates', () => {
 
     const listed = 1 as 1 | 2
     if (accepts(listed)) {
-      expectTypeOf(listed).toEqualTypeOf<1>()
+      expectTypeOf(listed).toExtend<1>()
     } else {
       assert.fail('the original type predicate rejected a removed member')
     }
@@ -362,10 +362,17 @@ test.group('type predicates', () => {
     if (accepts(unlisted)) {
       assert.fail('the original type predicate accepted an unlisted value')
     } else {
-      expectTypeOf(unlisted).toEqualTypeOf<2>()
+      expectTypeOf(unlisted).toEqualTypeOf<1 | 2>()
     }
 
-    assert.isFalse(isOneOf(values)(1))
+    const acceptsCurrentValues = isOneOf(values)
+    function rejectUnlisted(value: 'Batman' | 1 | 2): 'Batman' | 1 | 2 {
+      if (acceptsCurrentValues(value)) throw new Error('value is a member')
+      expectTypeOf(value).toEqualTypeOf<'Batman' | 1 | 2>()
+      return value
+    }
+
+    assert.equal(rejectUnlisted(1), 1)
   })
 
   test('a sparse allowlist cannot match undefined', ({ assert }) => {
