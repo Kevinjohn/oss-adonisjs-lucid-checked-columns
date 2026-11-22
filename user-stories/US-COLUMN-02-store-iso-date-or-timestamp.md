@@ -19,7 +19,7 @@ As an application developer, I want a date or timestamp property kept as one can
 
 - `isoDateColumn` accepts only a real calendar date written `YYYY-MM-DD`; years 0001 through 9999, month lengths and Gregorian leap years are checked without depending on the host time zone.
 - `isoTimestampColumn` accepts only a string `Date#toISOString()` produces: a UTC instant with three millisecond digits and a trailing `Z`.
-- Standalone guards narrow successful input to `IsoDate` or `IsoTimestamp`. A failed guard leaves ordinary strings possible. Canonical timestamps can include year 0000 or a signed six-digit extended year if the instant round-trips exactly.
+- Standalone type predicates narrow successful input to `IsoDate` or `IsoTimestamp`. A failed type predicate check leaves ordinary strings possible. Canonical timestamps can include year 0000 or a signed six-digit extended year if the instant round-trips exactly.
 - An accepted value is stored and returned unchanged. `null` passes through both ways.
 - Any other value, including a `Date`, a Luxon `DateTime`, an instant with an offset or a non-string value from the driver, throws `Invalid persisted date in <table>.<column>` or `Invalid persisted timestamp in <table>.<column>` on save or on read. Nothing is saved, or the row does not hydrate.
 - The helpers refuse an invalid value rather than repairing or converting it. Query-builder writes bypass them.

@@ -3,7 +3,7 @@
 As an application developer, I want to import the published hooks and types into a Lucid model so my application can typecheck its declarations and read back what it writes.
 
 **Status:** Current.
-**Access and entry:** An ESM application using the Node and Lucid versions in the [package manifest](../package.json). Install the tarball built from the current source, import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`. The public type entry is present on this development branch; this does not claim its availability in an earlier release.
+**Access and entry:** An ESM application using the Node and Lucid versions in the [package manifest](../package.json). Install the [v0.3.0 release tarball](../README.md#install) or a tarball built from current source, import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`. The public type entry is available since v0.3.0.
 
 ## Acceptance criteria
 
