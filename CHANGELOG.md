@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-11-22
+
+- Preserve possible values in the false branch of `isOneOf` when a mutable tuple rejects a
+  member. Readonly tuples of exact literals retain literal narrowing.
+
 ## 0.3.0 - 2026-11-21
 
 - Document and verify the package user stories and implementation flows.
