@@ -11,7 +11,7 @@ As an application developer, I want to import the published hooks and types into
 
 ## Acceptance criteria
 
-- The root exports runtime helpers and types. The `/types` subpath supports type-only imports of `IsoDate`, `IsoTimestamp`, `IsoColumnOptions`, `JsonColumnOptions` and `JsonValidator`. Both entry points refer to the same declarations and brands.
+- The root exports runtime helpers and types. The `/types` subpath supports type-only imports of `IsoDate`, `IsoTimestamp`, `IsoColumnOptions`, `JsonColumnOptions` and `JsonValidator`. Both entry points refer to the same declarations and brands. Since v0.3.2, the subpath also resolves to a JavaScript module with no runtime helpers. It supports inline type specifiers such as `import { type JsonValidator }` when compilation or type stripping preserves an empty module import.
 - A successful ISO predicate check lets the host assign the resulting branded value across either entry point. Hook declarations typecheck their write inputs even when Lucid attribute and model arguments are supplied. `consume` accepts unknown driver input.
 - With a configured Lucid adapter and suitable SQLite text columns, creating a record writes JSON text and canonical ISO strings. Finding the record hydrates the array and returns the original ISO strings. No package-specific provider or configuration hook is needed.
 - A model save with an invalid date fails. A direct database write can store malformed JSON. The next model read then fails during hydration.
@@ -37,7 +37,8 @@ Scope: the packed SQLite consumer's sequential assertions, including its expecte
 flowchart TD
     A["Smoke script copies fixture and candidate tarball into temporary directory"] --> B["pnpm install"]
     B --> C["pnpm smoke: tsc then node build/model.js"]
-    C --> D["Configure SQLite adapter and declare ReleaseRecord"]
+    C --> P["Node loads package root and /types for the inline type import"]
+    P --> D["Configure SQLite adapter and declare ReleaseRecord"]
     D --> E["Create text columns and check ISO values"]
     E --> F["ReleaseRecord.create runs column prepare hooks"]
     F --> G["db.from checks raw text storage"]
@@ -50,6 +51,6 @@ flowchart TD
     M --> N["Finally close database connections"]
 ```
 
-The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit.
+The `/types` export selects declarations during typechecking and the default JavaScript module during execution. The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit.
 
-**Code references:** [packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh), [smoke command](../examples/release-consumer/package.json), [root exports](../index.ts), [type entry](../src/types.ts).
+**Code references:** [packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh), [smoke command](../examples/release-consumer/package.json), [root exports](../index.ts), [type entry](../src/types.ts), [export map](../package.json#L23).

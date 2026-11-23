@@ -36,10 +36,11 @@ flowchart TD
 
 ## Code flow
 
-Scope: the column options Lucid calls on model save and hydration; both directions share one check.
+The standalone predicates return booleans. Lucid calls the two hooks on model save and hydration, where the same predicates check non-null values.
 
 ```mermaid
 flowchart TD
+    S["Call isIsoDate or isIsoTimestamp directly"] --> R["Return whether the input is canonical"]
     A["isoDateColumn or isoTimestampColumn(table, column)"] --> B["createIsoColumnOptions with table, column, kind and acceptsValue"]
     B --> C["prepare and consume are the same function"]
     C --> D{"value === null?"}

@@ -27,4 +27,4 @@
 - **Operator:** installation or maintenance outside ordinary application requests.
 - **Planned:** agreed target without an ordinary implemented journey.
 
-The source baseline passed TypeScript checking and the repository’s 74 tests, including in-memory Lucid model journeys. The installed SQLite consumer was reviewed from source for this catalogue update. See the [portable template](TEMPLATE.md) for writing and diagram maintenance rules.
+The catalogue links existing tests and the packed SQLite consumer as coverage. This refresh source-reviewed those scenarios. See the [portable template](TEMPLATE.md) for writing and diagram maintenance rules.
