@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.2 - 2026-11-23
+
 - Correction to 0.3.0: that release added the type-only
   `@kevinjohn/adonisjs-lucid-checked-columns/types` entry, exposing `JsonValidator`,
   `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the same identities as
