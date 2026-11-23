@@ -107,7 +107,10 @@ their elements and density at runtime.
 Since v0.3.0, the root and the type-only
 `@kevinjohn/adonisjs-lucid-checked-columns/types` entry both expose
 `JsonValidator`, `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
-same type identities. The branded ISO types describe values narrowed by their respective predicates.
+same type identities. The `/types` entry also resolves at runtime, so both
+`import type { JsonValidator }` and the inline `import { type JsonValidator }` form load under
+`verbatimModuleSyntax` and Node's type stripping. The branded ISO types describe values narrowed by
+their respective predicates.
 
 ## Errors
 

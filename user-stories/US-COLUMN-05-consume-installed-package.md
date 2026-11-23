@@ -46,4 +46,4 @@ flowchart TD
     M --> N["Finally close database connections"]
 ```
 
-The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit. [Smoke command](../examples/release-consumer/package.json), [root exports](../index.ts) and [type entry](../types.ts).
+The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit. [Smoke command](../examples/release-consumer/package.json), [root exports](../index.ts) and [type entry](../src/types.ts).

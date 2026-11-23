@@ -21,6 +21,8 @@ import type {
   IsoDate as SubpathDate,
   IsoTimestamp as SubpathTimestamp,
 } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
+// The inline form keeps a runtime import under verbatimModuleSyntax, so the subpath must load.
+import { type JsonValidator } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
 
 const app = new AppFactory().create(new URL('../', import.meta.url), () => {})
 const db = new Database(
@@ -34,6 +36,7 @@ const db = new Database(
   new Emitter(app)
 )
 BaseModel.useAdapter(db.modelAdapter())
+const acceptsLabel: JsonValidator<'verified'> = isOneOf(['verified'])
 
 class ReleaseRecord extends BaseModel {
   static table = 'release_records'
@@ -41,7 +44,7 @@ class ReleaseRecord extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
 
-  @column(jsonColumn('release_records', 'labels', isArrayOf(isOneOf(['verified']))))
+  @column(jsonColumn('release_records', 'labels', isArrayOf(acceptsLabel)))
   declare labels: 'verified'[]
 
   @column(isoDateColumn('release_records', 'date'))

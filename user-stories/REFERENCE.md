@@ -10,7 +10,7 @@
 - Public exports: [`index.ts`](../index.ts).
 - JSON column, type predicates and the JSON column check: [`src/json_column.ts`](../src/json_column.ts).
 - ISO date and timestamp columns and predicates: [`src/iso_column.ts`](../src/iso_column.ts).
-- Installed consumer contracts and paths: [type entry](../types.ts), [manifest](../package.json), [packed SQLite fixture](../examples/release-consumer/model.ts).
+- Installed consumer contracts and paths: [type entry](../src/types.ts), [manifest](../package.json), [packed SQLite fixture](../examples/release-consumer/model.ts).
 - Contracts, error messages and limits: [README](../README.md). There is no separate guide.
 - Test evidence: [`tests/json_column.spec.ts`](../tests/json_column.spec.ts), [`tests/iso_column.spec.ts`](../tests/iso_column.spec.ts).
 

@@ -1,17 +1,4 @@
-import type { LucidRow } from '@adonisjs/lucid/types/model'
-
-/** Column options returned by the ISO helpers; pass them to Lucid's `@column` decorator. */
-export type IsoColumnOptions<T extends string> = {
-  prepare(value: T | null, attribute?: string, model?: LucidRow): T | null
-  consume(value: unknown, attribute?: string, model?: LucidRow): T | null
-}
-
-declare const isoDateBrand: unique symbol
-declare const isoTimestampBrand: unique symbol
-/** A calendar date narrowed by `isIsoDate`, in canonical YYYY-MM-DD form. */
-export type IsoDate = string & { readonly [isoDateBrand]: true }
-/** A UTC instant narrowed by `isIsoTimestamp`, exactly as Date#toISOString returns it. */
-export type IsoTimestamp = string & { readonly [isoTimestampBrand]: true }
+import type { IsoColumnOptions, IsoDate, IsoTimestamp } from './types.js'
 
 /**
  * True only for a real calendar date written `YYYY-MM-DD`. Month lengths and leap years are

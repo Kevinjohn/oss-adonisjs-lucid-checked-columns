@@ -5,6 +5,7 @@
     "strict": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
+    "verbatimModuleSyntax": true,
     "outDir": "./build"
   },
   "include": ["model.ts"]

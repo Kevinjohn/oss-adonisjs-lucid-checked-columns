@@ -1,10 +1,5 @@
-import type { ColumnOptions, LucidRow } from '@adonisjs/lucid/types/model'
-
-/** Column options returned by `jsonColumn`; pass them to Lucid's `@column` decorator. */
-export type JsonColumnOptions<T, Input = T> = Pick<ColumnOptions, 'meta'> & {
-  prepare(value: Input | null, attribute?: string, model?: LucidRow): string | null
-  consume(value: unknown, attribute?: string, model?: LucidRow): T | null
-}
+import type { ColumnOptions } from '@adonisjs/lucid/types/model'
+import type { JsonColumnOptions, JsonValidator } from './types.js'
 
 /** Marks a column declared with `jsonColumn`, so the stored encoding can be read from the model. */
 const JSON_COLUMN = Object.freeze({
@@ -38,9 +33,6 @@ type IsLiteralTuple<V extends readonly (string | number)[]> = [V] extends [reado
 declare const denseArray: unique symbol
 type DenseArray<T> = T[] & { readonly [denseArray]: true }
 type JsonColumnInput<T> = T extends DenseArray<infer Element> ? JsonColumnInput<Element>[] : T
-
-/** A TypeScript type predicate narrowing unknown values to the type one JSON column may hold. */
-export type JsonValidator<T> = (value: unknown) => value is T
 
 /** Accepts `true` and `false` only. */
 export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
