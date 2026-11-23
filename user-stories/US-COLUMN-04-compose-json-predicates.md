@@ -3,7 +3,11 @@
 As an application developer, I want to check input before assigning it to a model and reuse that check on hydration so both entry points enforce the same rule.
 
 **Status:** Current.
-**Access and entry:** Import the type predicates from the package root. Direct calls require no Lucid model.
+**Access:** Application developer. Direct calls require no Lucid model.
+**Entry:** Import `isBoolean`, `isOneOf` and `isArrayOf` from the package root. Call `isBoolean(value)` directly, or call the type predicate that `isOneOf(values)` or `isArrayOf(acceptsValue)` returns.
+**Documentation:** [API](../README.md#api), [Errors](../README.md#errors).
+**Source:** [Type predicates](../src/json_column.ts), [JsonValidator](../src/types.ts).
+**Coverage:** [Runtime and type-level cases](../tests/json_column.spec.ts).
 
 ## Acceptance criteria
 
@@ -46,4 +50,6 @@ flowchart TD
     N --> L
 ```
 
-The loop checks presence and membership together at each index. [Implementation](../src/json_column.ts) and [runtime and type-level cases](../tests/json_column.spec.ts).
+The loop checks presence and membership together at each index.
+
+**Code references:** [isBoolean](../src/json_column.ts#L38), [isOneOf](../src/json_column.ts#L46), [isArrayOf](../src/json_column.ts#L57), [JsonValidator](../src/types.ts#L10).

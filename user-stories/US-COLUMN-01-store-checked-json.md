@@ -4,18 +4,18 @@ As an application developer, I want a model property stored as JSON and checked 
 
 **Status:** Current.
 **Access:** Application developer who declares the Lucid model. Applies to model saves and model hydration only.
-**Entry:** `@column(jsonColumn(table, column, acceptsValue))` on a Lucid model property, with a type predicate such as `isBoolean`, one returned by `isOneOf(values)` or `isArrayOf(acceptsValue)`, or any host type guard.
+**Entry:** `@column(jsonColumn(table, column, acceptsValue))` on a Lucid model property, with a type predicate such as `isBoolean`, one returned by `isOneOf(values)` or `isArrayOf(acceptsValue)`, or any host type predicate.
 **Documentation:** [Use](../README.md#use), [API](../README.md#api), [Errors](../README.md#errors), [Limits](../README.md#limits).
 **Source:** [JSON column](../src/json_column.ts).
 **Coverage:** [JSON column tests](../tests/json_column.spec.ts).
 
 ## Acceptance criteria
 
-| Input          | Control    | Required/default/conditions                                                                                                                                                                                                                                                                                      |
-| -------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `table`        | Argument 1 | Required string. Table name used only in error messages.                                                                                                                                                                                                                                                         |
-| `column`       | Argument 2 | Required string. Column name used only in error messages.                                                                                                                                                                                                                                                        |
-| `acceptsValue` | Argument 3 | Required TypeScript type guard `(value: unknown) => value is T`. Use `isBoolean` for booleans, the type predicate returned by `isOneOf(values)` for listed strings or numbers, the one returned by `isArrayOf(acceptsValue)` to apply another type predicate to every array element, or your own type predicate. |
+| Input          | Control    | Required/default/conditions                                                                                                                                                                                                                                                                                          |
+| -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `table`        | Argument 1 | Required string. Table name used only in error messages.                                                                                                                                                                                                                                                             |
+| `column`       | Argument 2 | Required string. Column name used only in error messages.                                                                                                                                                                                                                                                            |
+| `acceptsValue` | Argument 3 | Required TypeScript type predicate `(value: unknown) => value is T`. Use `isBoolean` for booleans, the type predicate returned by `isOneOf(values)` for listed strings or numbers, the one returned by `isArrayOf(acceptsValue)` to apply another type predicate to every array element, or your own type predicate. |
 
 - On save, an accepted non-null value is written as `JSON.stringify(value)`. On read, every string is parsed with `JSON.parse`; a non-string value from the driver is validated as it is. A direct `null` input passes through either hook without validation; JSON text `null` is parsed and validated like other text.
 - The stored representation is JSON text, suitable for a text column. A decoded native scalar string is not supported: strings are always parsed as JSON, with no parse-error fallback. The packed consumer verifies SQLite text storage; other driver encodings are not claimed.
