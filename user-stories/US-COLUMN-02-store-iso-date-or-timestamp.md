@@ -51,4 +51,4 @@ flowchart TD
 
 The date predicate checks the string type, four-digit date pattern, year/month/day ranges and leap-year-adjusted month length, in that order. The timestamp predicate checks the string type, a finite `Date.parse` result and exact equality with its ISO encoding.
 
-**Code references:** [isoDateColumn](../src/iso_column.ts#L69), [isoTimestampColumn](../src/iso_column.ts#L81), [shared hooks](../src/iso_column.ts#L50), [isIsoDate](../src/iso_column.ts#L20), [isIsoTimestamp](../src/iso_column.ts#L36).
+**Code references:** [isoDateColumn](../src/iso_column.ts#L56), [isoTimestampColumn](../src/iso_column.ts#L68), [shared hooks](../src/iso_column.ts#L37), [isIsoDate](../src/iso_column.ts#L7), [isIsoTimestamp](../src/iso_column.ts#L23).

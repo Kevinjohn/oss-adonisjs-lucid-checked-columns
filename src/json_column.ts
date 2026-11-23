@@ -109,6 +109,7 @@ export function jsonColumn<T>(
       try {
         if (typeof value === 'string') parsed = JSON.parse(value)
       } catch {
+        // No cause: the parser's message can quote the stored text, which may hold private data.
         throw createInvalidJsonError()
       }
       if (!acceptsValue(parsed)) throw createInvalidJsonError()
