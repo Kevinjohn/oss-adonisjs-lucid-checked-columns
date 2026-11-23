@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Correction to 0.3.0: that release added the type-only
+  `@kevinjohn/adonisjs-lucid-checked-columns/types` entry, exposing `JsonValidator`,
+  `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the same identities as
+  the root. Its changelog entry omitted it.
+- The `/types` entry now resolves at runtime, so the inline `import { type JsonValidator }` form
+  loads under `verbatimModuleSyntax` and Node's type stripping instead of failing with
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
 ## 0.3.1 - 2026-11-22
 
 - Preserve possible values in the false branch of `isOneOf` when a mutable tuple rejects a

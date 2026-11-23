@@ -3,7 +3,11 @@
 As an application developer, I want to import the published hooks and types into a Lucid model so my application can typecheck its declarations and read back what it writes.
 
 **Status:** Current.
-**Access and entry:** An ESM application using the Node and Lucid versions in the [package manifest](../package.json). Install the [release tarball](../README.md#install) or a tarball built from current source, import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`. The public type entry is available since v0.3.0.
+**Access:** An ESM application using the Node and Lucid versions in the [package manifest](../package.json).
+**Entry:** Install the [release tarball](../README.md#install) or a tarball built from current source, import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`. The public type entry is available since v0.3.0.
+**Documentation:** [Install](../README.md#install), [Use](../README.md#use), [API](../README.md#api).
+**Source:** [Root exports](../index.ts), [type entry](../src/types.ts), [package manifest](../package.json).
+**Coverage:** [Packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh).
 
 ## Acceptance criteria
 
@@ -46,4 +50,6 @@ flowchart TD
     M --> N["Finally close database connections"]
 ```
 
-The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit. [Smoke command](../examples/release-consumer/package.json), [root exports](../index.ts) and [type entry](../types.ts).
+The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit.
+
+**Code references:** [packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh), [smoke command](../examples/release-consumer/package.json), [root exports](../index.ts), [type entry](../src/types.ts).

@@ -36,6 +36,55 @@ test.group('jsonColumn', () => {
     assert.throws(() => options.consume('{tru'), 'Invalid persisted JSON in heroes.active')
   })
 
+  test('a malformed stored value refusal carries no stored text or parser cause', ({ assert }) => {
+    const options = jsonColumn('heroes', 'secret', isBoolean)
+    try {
+      options.consume('{"password": "hunter2"')
+      assert.fail('consume should throw')
+    } catch (error) {
+      assert.equal((error as Error).message, 'Invalid persisted JSON in heroes.secret')
+      assert.isUndefined((error as Error).cause)
+      assert.notInclude(String((error as Error).stack), 'hunter2')
+    }
+  })
+
+  test('an error thrown by the type predicate propagates unchanged from each call', ({
+    assert,
+  }) => {
+    const sentinel = new Error('host predicate failed')
+    // Throws on the given call to the predicate and accepts every earlier call.
+    const throwsOnCall = (failingCall: number) => {
+      let calls = 0
+      return (value: unknown): value is string[] => {
+        if (++calls === failingCall) throw sentinel
+        return Array.isArray(value)
+      }
+    }
+    const thrown = (run: () => unknown) => {
+      try {
+        run()
+      } catch (error) {
+        return error
+      }
+      return assert.fail('the hook should throw')
+    }
+    const prepareFirst = jsonColumn('heroes', 'aliases', throwsOnCall(1))
+    const prepareEncoded = jsonColumn('heroes', 'aliases', throwsOnCall(2))
+    const consume = jsonColumn('heroes', 'aliases', throwsOnCall(1))
+    assert.strictEqual(
+      thrown(() => prepareFirst.prepare(['Robin'])),
+      sentinel
+    )
+    assert.strictEqual(
+      thrown(() => prepareEncoded.prepare(['Robin'])),
+      sentinel
+    )
+    assert.strictEqual(
+      thrown(() => consume.consume('["Robin"]')),
+      sentinel
+    )
+  })
+
   test('refuses a written value that has no JSON encoding', ({ assert }) => {
     const acceptsAnyValue = (value: unknown): value is unknown => value !== null
     const options = jsonColumn('heroes', 'origin', acceptsAnyValue)
@@ -327,6 +376,22 @@ test.group('type predicates', () => {
     const options = jsonColumn('heroes', 'flags', isArrayOf(isFlags))
     const ordinary: boolean[][] = [[true, false]]
     assert.equal(options.prepare(ordinary), '[[true,false]]')
+  })
+
+  test('the README factories return type predicates a column accepts', ({
+    assert,
+    expectTypeOf,
+  }) => {
+    const acceptsTeam = isOneOf(['Justice League', 'Titans'] as const)
+    const acceptsTeams = isArrayOf(acceptsTeam)
+    assert.isTrue(acceptsTeams(['Titans', 'Justice League']))
+    assert.isFalse(acceptsTeams(['Avengers']))
+    const options = jsonColumn('heroes', 'teams', acceptsTeams)
+    const teams: ('Justice League' | 'Titans')[] | null = options.consume('["Titans"]')
+    assert.deepEqual(teams, ['Titans'])
+    assert.equal(options.prepare(['Titans']), '["Titans"]')
+    // @ts-expect-error The column refuses an unlisted team at compile time too.
+    expectTypeOf(options.prepare).toBeCallableWith(['Avengers'])
   })
 
   test('isArrayOf accepts only arrays whose every element is valid', ({ assert }) => {

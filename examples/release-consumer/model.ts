@@ -14,13 +14,20 @@ import {
   isoDateColumn,
   isoTimestampColumn,
   jsonColumn,
+  type IsoColumnOptions,
   type IsoDate,
   type IsoTimestamp,
+  type JsonColumnOptions,
+  type JsonValidator as RootValidator,
 } from '@kevinjohn/adonisjs-lucid-checked-columns'
 import type {
+  IsoColumnOptions as SubpathIsoOptions,
   IsoDate as SubpathDate,
   IsoTimestamp as SubpathTimestamp,
+  JsonColumnOptions as SubpathJsonOptions,
 } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
+// The inline form keeps a runtime import under verbatimModuleSyntax, so the subpath must load.
+import { type JsonValidator } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
 
 const app = new AppFactory().create(new URL('../', import.meta.url), () => {})
 const db = new Database(
@@ -34,6 +41,7 @@ const db = new Database(
   new Emitter(app)
 )
 BaseModel.useAdapter(db.modelAdapter())
+const acceptsLabel: JsonValidator<'verified'> = isOneOf(['verified'])
 
 class ReleaseRecord extends BaseModel {
   static table = 'release_records'
@@ -41,7 +49,7 @@ class ReleaseRecord extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
 
-  @column(jsonColumn('release_records', 'labels', isArrayOf(isOneOf(['verified']))))
+  @column(jsonColumn('release_records', 'labels', isArrayOf(acceptsLabel)))
   declare labels: 'verified'[]
 
   @column(isoDateColumn('release_records', 'date'))
@@ -50,6 +58,17 @@ class ReleaseRecord extends BaseModel {
   @column(isoTimestampColumn('release_records', 'timestamp'))
   declare timestamp: string
 }
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
+// The root and /types entries must expose the same five type identities.
+export const sameTypeIdentities: [
+  Equal<IsoDate, SubpathDate>,
+  Equal<IsoTimestamp, SubpathTimestamp>,
+  Equal<IsoColumnOptions<IsoDate>, SubpathIsoOptions<SubpathDate>>,
+  Equal<JsonColumnOptions<string[]>, SubpathJsonOptions<string[]>>,
+  Equal<RootValidator<IsoDate>, JsonValidator<SubpathDate>>,
+] = [true, true, true, true, true]
 
 // Verify that unresolved declaration re-exports cannot silently pass this consumer's typecheck.
 export function typecheckColumnHooks() {

@@ -13,7 +13,7 @@ const runnerPath = path.join(repoRoot, 'bin/check_changed.ts')
 const plannerPath = path.join(repoRoot, 'bin/check_changed_plan.ts')
 
 type FixtureOptions = {
-  command?: 'normal' | 'hang' | 'missing' | 'no-ready'
+  command?: 'normal' | 'hang' | 'missing' | 'no-ready' | 'split-utf8'
   hook?: 'record-term' | 'fail-reap'
   gitMissing?: boolean
   gitFailure?: 'exit' | 'signal'
@@ -108,7 +108,7 @@ async function makeCheckChangedFixture(
     const commandPath = path.join(bin, 'pnpm')
     await writeFile(
       commandPath,
-      `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nimport { writeFileSync } from 'node:fs'\nwriteFileSync(${JSON.stringify(commandPid)}, String(process.pid) + '\\n')\nconst args = process.argv.slice(2)\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\nconsole.log('Executed tests: 1')\n`,
+      `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nimport { writeFileSync } from 'node:fs'\nwriteFileSync(${JSON.stringify(commandPid)}, String(process.pid) + '\\n')\nconst args = process.argv.slice(2)\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\nif (process.env.CHECK_CHANGED_SPLIT_UTF8 === '1') {\n  const text = Buffer.from('split é\\n')\n  process.stdout.write(text.subarray(0, 7))\n  await new Promise((resolve) => setTimeout(resolve, 100))\n  process.stdout.write(text.subarray(7))\n  process.exit(1)\n}\nconsole.log('Executed tests: 1')\n`,
       { mode: 0o755 }
     )
   }
@@ -128,6 +128,8 @@ async function makeCheckChangedFixture(
     PATH: `${bin}${path.delimiter}${supportBin}`,
   }
   delete env.CHECK_CHANGED_HANG
+  delete env.CHECK_CHANGED_SPLIT_UTF8
+  if (options.command === 'split-utf8') env.CHECK_CHANGED_SPLIT_UTF8 = '1'
   if (options.command === 'hang') env.CHECK_CHANGED_HANG = '1'
   if (options.command === 'no-ready') {
     env.CHECK_CHANGED_HANG = '1'
@@ -225,6 +227,17 @@ test('runs selected static checks normally and observes a missing command spawn 
   assert.equal(missingResult.code, 1, missingResult.text)
   assert.match(missingResult.text, /spawn failed: spawn pnpm ENOENT/)
   assert.doesNotMatch(missingResult.text, /UnhandledPromiseRejection|unhandledRejection/)
+}).timeout(30_000)
+
+test('a failing command that splits one UTF-8 character across writes prints it intact', async ({
+  cleanup,
+}) => {
+  const f = await makeCheckChangedFixture(cleanup, { command: 'split-utf8' })
+  const result = await collectExit(await readChildOutput(launch(f)))
+  assert.equal(result.code, 1, result.text)
+  assert.match(result.text, /fail format \(exit 1\)/)
+  assert.match(result.text, /^split é$/m)
+  assert.doesNotMatch(result.text, /\uFFFD/)
 }).timeout(30_000)
 
 test('completion remains available after close and includes all piped output', async () => {

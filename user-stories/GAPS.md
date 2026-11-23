@@ -1,6 +1,6 @@
 # Decision gaps
 
-None was identified between the [README](../README.md), the [changelog](../CHANGELOG.md) and the [source](../src/) during this catalogue pass. No separate product decision record is present. The following boundaries are retained intentionally, not unresolved feature requests.
+One was identified between the [README](../README.md), the [changelog](../CHANGELOG.md) and the [source](../src/) during this catalogue pass: the 0.3.0 changelog entry omits the `/types` entry that release added. The [Unreleased](../CHANGELOG.md#unreleased) section records the correction; the published entry is not rewritten. No separate product decision record is present. The following boundaries are retained intentionally, not unresolved feature requests.
 
 | Boundary             | Contract and source                                                                                                                                                                                           | Catalogue treatment                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
