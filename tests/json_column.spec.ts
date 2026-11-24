@@ -178,6 +178,20 @@ test.group('jsonColumn', () => {
     }
   })
 
+  test('the public encoding exception preserves its code and status with caller options', ({
+    assert,
+  }) => {
+    const cause = new TypeError('JSON encoding failed')
+    const options = { cause, code: 'E_OTHER', status: 200 }
+    const error = new errors.E_JSON_COLUMN_ENCODING('heroes', 'origin', options)
+
+    assert.instanceOf(error, errors.JsonColumnEncodingException)
+    assert.equal(error.code, 'E_JSON_COLUMN_ENCODING')
+    assert.equal(error.status, 500)
+    assert.strictEqual(error.cause, cause)
+    assert.isUndefined(new errors.E_JSON_COLUMN_ENCODING('heroes', 'origin').cause)
+  })
+
   test('whatever prepare returns, consume accepts', ({ assert }) => {
     const options = jsonColumn('heroes', 'aliases', isArrayOf(isOneOf(['Batman', 'Robin'])))
     const encoded = options.prepare(['Robin', 'Batman'])

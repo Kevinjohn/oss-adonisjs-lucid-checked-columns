@@ -49,7 +49,7 @@ export class JsonColumnEncodingException extends Exception {
     readonly column: string,
     options?: ErrorOptions
   ) {
-    super(`Cannot encode JSON in ${table}.${column}`, options)
+    super(`Cannot encode JSON in ${table}.${column}`, { cause: options?.cause })
   }
 }
 

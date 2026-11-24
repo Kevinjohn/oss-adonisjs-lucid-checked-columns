@@ -98,7 +98,7 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "@adonisjs/core": "^7.0.1",
+    "@adonisjs/core": "^7.0.0",
     "@adonisjs/lucid": "^22.0.0"
   },
   "tsdown": {

@@ -4,7 +4,7 @@ Checked JSON, ISO date and ISO timestamp columns for AdonisJS Lucid models. Each
 `prepare`/`consume` options for Lucid's `@column` decorator that refuse an invalid value in both
 directions, so a corrupt row fails loudly when it is read instead of reaching the application.
 
-Requires Node 24 or later, `@adonisjs/core` 7.0.1 or later within 7.x, and `@adonisjs/lucid` 22.
+Requires Node 24 or later, `@adonisjs/core` 7, and `@adonisjs/lucid` 22.
 
 ## Install
 
@@ -116,6 +116,9 @@ same type identities. The `/types` entry also resolves at runtime, so both
 their respective predicates.
 
 ## Errors
+
+The `errors` namespace and exception identities below are available in the unreleased source.
+For the installed v0.3.3 release, see its [error handling documentation](https://github.com/Kevinjohn/oss-adonisjs-lucid-checked-columns/blob/v0.3.3/README.md#errors).
 
 When a Lucid model save or hydration fails storage validation, the column hook throws an AdonisJS
 exception with a stable `code`, status `500`, and `table` and `column` fields. The application
