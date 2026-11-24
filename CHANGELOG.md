@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-24
+
 - Replace plain column errors with `errors.E_INVALID_PERSISTED_JSON` for hydration failures,
   `errors.E_INVALID_JSON_COLUMN_VALUE` for rejected JSON writes,
   `errors.E_UNDEFINED_JSON_COLUMN_VALUE` for writes with no JSON encoding,
