@@ -11,6 +11,7 @@ As an application developer, I want to check input before assigning it to a mode
 
 ## Acceptance criteria
 
+- `isBoolean(value)` takes an unknown value. `isOneOf(values)` requires a readonly or mutable array of strings and numbers; `isArrayOf(acceptsValue)` requires an element type predicate. Neither factory supplies a default. Returned predicates take one unknown value and return a boolean.
 - `isBoolean` accepts only the primitive values `true` and `false`.
 - `isOneOf(values)` snapshots the supplied string and number members. Changing the original list afterwards has no effect. Holes add no member, an empty list accepts nothing and a numeric member never matches its string spelling.
 - A readonly tuple of literal members with unchanged contents narrows to its union. A mutable tuple, a dynamic list, a union of alternative tuples, a partially known tuple or a patterned string member only establishes validated membership. Rejection of such a value leaves other values of its underlying type possible.

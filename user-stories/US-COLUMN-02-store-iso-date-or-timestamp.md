@@ -21,7 +21,8 @@ As an application developer, I want a date or timestamp property kept as one can
 - `isoTimestampColumn` accepts only a string `Date#toISOString()` produces: a UTC instant with three millisecond digits and a trailing `Z`.
 - Standalone type predicates narrow successful input to `IsoDate` or `IsoTimestamp`. A failed type predicate check leaves ordinary strings possible. Canonical timestamps can include year 0000 or a signed six-digit extended year if the instant round-trips exactly.
 - An accepted value is stored and returned unchanged. `null` passes through both ways.
-- Any other value, including a `Date`, a Luxon `DateTime`, an instant with an offset or a non-string value from the driver, throws `errors.E_INVALID_ISO_COLUMN_VALUE` with the table, column and format kind on save or on read. Nothing is saved, or the row does not hydrate.
+- Any other value, including a `Date`, a Luxon `DateTime`, an instant with an offset or a non-string value from the driver, throws `errors.E_INVALID_ISO_COLUMN_VALUE` with the table, column and format kind on save or on read. The hook does not return a value for the model write or hydration; the host handles the error.
+- Both hooks accept optional `attribute` and `model` arguments but ignore them; `prepare` returns `T | null` and `consume` accepts unknown driver input and returns `T | null`. The database write belongs to Lucid and the adapter; the host must enforce stronger business rules before writing and after reading.
 - The helpers refuse an invalid value rather than repairing or converting it. Query-builder writes bypass them.
 
 ## User flow
@@ -30,7 +31,7 @@ As an application developer, I want a date or timestamp property kept as one can
 flowchart TD
     A["Developer declares the property with isoDateColumn or isoTimestampColumn"] --> B["Model saves or reads the property"]
     B --> C{"null or the canonical string?"}
-    C -->|Yes| D["Value is stored or returned unchanged"]
+    C -->|Yes| D["Lucid receives the unchanged value or null"]
     C -->|No| E["Save or read fails naming the column; correct the value or stored data"]
 ```
 

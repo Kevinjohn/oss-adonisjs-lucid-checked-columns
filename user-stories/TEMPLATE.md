@@ -58,7 +58,7 @@ flowchart TD
 
 ## Actions without input fields
 
-Replace the field table with a short list of controls and their visible results. Do not create empty or artificial field rows. For a package action with no UI, list the actual service inputs and returned values instead. Include confirmation controls and relevant cancellation or failure results when they affect the action. Example: ``- **Check a column** returns true when the model column was declared with `jsonColumn` and false otherwise.`` This outcome is specific to this repository; replace it with an outcome that exists in the target repository.
+Replace the field table with a short list of controls and their visible results. Do not create empty or artificial field rows. For a package action with no UI, list the actual service inputs and returned values instead. Include confirmation controls and relevant cancellation or failure results when they affect the action. Example: ``- **Check a column** returns true when the column options carry the matching `checkedColumns` marker and false otherwise; matching metadata alone does not prove the hooks are present.`` This outcome is specific to this repository; replace it with an outcome that exists in the target repository.
 
 ## Writing and maintenance rules
 
