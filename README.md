@@ -57,8 +57,8 @@ The `table` and `column` arguments only name the column in error messages.
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `jsonColumn(table, column, acceptsValue)`   | Writes `JSON.stringify(value)`; reads with `JSON.parse` when the driver returns text. `null` passes through. The value must pass the type predicate `acceptsValue` both ways.                           |
 | `isBoolean`                                 | Type predicate: `true` or `false`.                                                                                                                                                                      |
-| `isOneOf(values)`                           | Returns a type predicate that accepts exactly one of the listed strings or numbers.                                                                                                                     |
-| `isArrayOf(acceptsValue)`                   | Returns a type predicate that accepts an array whose every element passes the type predicate `acceptsValue`.                                                                                            |
+| `isOneOf(values)`                           | Snapshots the listed strings and numbers in a `Set` and returns a reusable membership type predicate.                                                                                                   |
+| `isArrayOf(acceptsValue)`                   | Captures the element type predicate and returns a reusable type predicate for dense arrays whose elements all pass `acceptsValue`.                                                                      |
 | `isJsonColumn(options)`                     | Whether a column was declared with `jsonColumn`. Pass `Model.$getColumn(name)`; use it to find the JSON columns when writing rows outside the model.                                                    |
 | `isoDateColumn(table, column)`              | Keeps a real calendar date written `YYYY-MM-DD` in years `0001`–`9999` unchanged; refuses anything else. `null` passes through.                                                                         |
 | `isoTimestampColumn(table, column)`         | Keeps a UTC instant exactly as `Date#toISOString()` writes it (three millisecond digits, trailing `Z`), including its signed six-digit extended-year form outside `0000`–`9999`; refuses anything else. |
@@ -75,7 +75,10 @@ checks real saves and hydration using text columns; no equivalent test claim is 
 On write, the value and its JSON encoding are both checked. The encoded text passes read-side
 validation under unchanged host validation rules; the read side continues to validate each value.
 
-Any `(value: unknown) => value is T` function is a type predicate, so a host can supply its own.
+`isOneOf` and `isArrayOf` are predicate factories exported from the package root. Each returns a
+`JsonValidator` that you can call directly, compose with another factory or pass to `jsonColumn`.
+You can also supply your own type predicate with the signature `(value: unknown) => value is T`.
+
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
 The generic is a compile-time assertion: the helpers still check canonical ISO syntax, but cannot
 prove additional rules encoded in a host subtype. For example, the host must check a business cutoff
@@ -114,11 +117,10 @@ their respective predicates.
 
 ## Errors
 
-Each package-created storage refusal throws a plain `Error` with the messages below; there are no HTTP
-exceptions or stable storage error codes. This is deliberate: the column hooks run inside Lucid's model
-save and hydration, not in an HTTP request, so the host decides how to report them. Errors thrown by a
-supplied type predicate propagate unchanged, whether it runs before encoding, on the encoded value or
-on read.
+When storage validation fails during a Lucid model save or hydration, the column hook throws a plain
+`Error` with one of the messages below. The application decides how to report the storage validation
+error, including any HTTP response or stable error code it exposes. Errors thrown by a supplied type
+predicate propagate unchanged, whether it runs before encoding, on the encoded value or on read.
 
 - `Invalid persisted JSON in <table>.<column>`: a written value, its JSON encoding or a stored
   value fails the type predicate, or stored text is not JSON. The encoding is checked because JSON can

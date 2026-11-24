@@ -23,6 +23,9 @@ test.group('jsonColumn', () => {
   test('refuses a written value the type predicate rejects', ({ assert }) => {
     const options = jsonColumn('heroes', 'active', isBoolean)
     assert.throws(() => options.prepare('yes' as never), 'Invalid persisted JSON in heroes.active')
+
+    const flags = jsonColumn('heroes', 'flags', isArrayOf(isBoolean))
+    assert.throws(() => flags.prepare(Array(1)), 'Invalid persisted JSON in heroes.flags')
   })
 
   test('refuses a stored value the type predicate rejects', ({ assert }) => {
@@ -95,10 +98,6 @@ test.group('jsonColumn', () => {
   })
 
   test('refuses a written value whose encoding the type predicate rejects', ({ assert }) => {
-    const flags = jsonColumn('heroes', 'flags', isArrayOf(isBoolean))
-    // A hole encodes as null.
-    assert.throws(() => flags.prepare(Array(1)), 'Invalid persisted JSON in heroes.flags')
-
     const limits = jsonColumn('heroes', 'limits', isArrayOf(isOneOf([Number.NaN, Infinity])))
     // isOneOf matches NaN (Array.includes uses SameValueZero); both encode as null.
     assert.throws(
