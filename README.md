@@ -11,7 +11,7 @@ Requires Node 24 or later and `@adonisjs/lucid` 22.
 Releases are GitHub release tarballs; the package is not on the npm registry.
 
 ```sh
-pnpm add https://github.com/Kevinjohn/oss-adonisjs-lucid-checked-columns/releases/download/v0.3.2/kevinjohn-adonisjs-lucid-checked-columns-0.3.2.tgz
+pnpm add https://github.com/Kevinjohn/oss-adonisjs-lucid-checked-columns/releases/download/v0.3.3/kevinjohn-adonisjs-lucid-checked-columns-0.3.3.tgz
 ```
 
 There is no provider and nothing to configure.

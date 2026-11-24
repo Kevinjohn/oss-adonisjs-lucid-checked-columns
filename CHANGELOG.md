@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.3 - 2026-11-24
+
+- Document the JSON predicate factories and storage validation errors. Distinguish input validation from post-encoding validation in the tests.
+
 ## 0.3.2 - 2026-11-23
 
 - Correction to 0.3.0: that release added the type-only
