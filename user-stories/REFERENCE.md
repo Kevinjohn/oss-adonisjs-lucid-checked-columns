@@ -16,7 +16,7 @@
 
 ## Availability
 
-`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. JSON and ISO predicates can be called directly without declaring a model column. Errors created by the column helpers are plain `Error` objects naming `<table>.<column>`; the `table` and `column` arguments are used only for these messages. An exception thrown by a supplied JSON type predicate propagates unchanged.
+`Current` means implemented and available under each story's Access and Entry conditions; it does not mean runtime-verified. JSON and ISO predicates can be called directly without declaring a model column. At this source baseline, the `errors` namespace exports exception classes and `E_...` aliases, with stable codes, status 500, `table` and `column` fields, and diagnostic messages. ISO exceptions also carry `kind`; JSON encoding exceptions retain their cause. Malformed persisted JSON omits the parser cause. Host code owns response and logging policy; an exception from a supplied JSON predicate propagates unchanged. The published v0.3.3 release instead throws plain `Error` objects and has no `errors` namespace; see [decision gaps](GAPS.md).
 
 ## Availability definitions
 
