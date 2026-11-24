@@ -3,7 +3,7 @@
 As an application developer, I want to import the published hooks and types into a Lucid model so my application can typecheck its declarations and read back what it writes.
 
 **Status:** Current.
-**Access:** An ESM application using the Node and Lucid versions in the [package manifest](../package.json).
+**Access:** An ESM application using the Node, AdonisJS core and Lucid versions in the [package manifest](../package.json).
 **Entry:** Install the [release tarball](../README.md#install) or a tarball built from current source, import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`. The public type entry is available since v0.3.0.
 **Documentation:** [Install](../README.md#install), [Use](../README.md#use), [API](../README.md#api).
 **Source:** [Root exports](../index.ts), [type entry](../src/types.ts), [package manifest](../package.json).
@@ -11,10 +11,10 @@ As an application developer, I want to import the published hooks and types into
 
 ## Acceptance criteria
 
-- The root exports runtime helpers and types. The `/types` subpath supports type-only imports of `IsoDate`, `IsoTimestamp`, `IsoColumnOptions`, `JsonColumnOptions` and `JsonValidator`. Both entry points refer to the same declarations and brands. Since v0.3.2, the subpath also resolves to a JavaScript module with no runtime helpers. It supports inline type specifiers such as `import { type JsonValidator }` when compilation or type stripping preserves an empty module import.
+- The root exports runtime helpers, the `errors` namespace and types. The `/types` subpath supports type-only imports of `IsoDate`, `IsoTimestamp`, `IsoColumnOptions`, `JsonColumnOptions` and `JsonValidator`. Both entry points refer to the same declarations and brands. Since v0.3.2, the subpath also resolves to a JavaScript module with no runtime helpers. It supports inline type specifiers such as `import { type JsonValidator }` when compilation or type stripping preserves an empty module import.
 - A successful ISO predicate check lets the host assign the resulting branded value across either entry point. Hook declarations typecheck their write inputs even when Lucid attribute and model arguments are supplied. `consume` accepts unknown driver input.
 - With a configured Lucid adapter and suitable SQLite text columns, creating a record writes JSON text and canonical ISO strings. Finding the record hydrates the array and returns the original ISO strings. No package-specific provider or configuration hook is needed.
-- A model save with an invalid date fails. A direct database write can store malformed JSON. The next model read then fails during hydration.
+- A model save with an invalid date throws `errors.E_INVALID_ISO_COLUMN_VALUE`. A direct database write can store malformed JSON or JSON of the wrong shape. The next model read fails during hydration, and the application can narrow the exception to `errors.E_INVALID_PERSISTED_JSON` for the affected table and column. A saved null still hydrates as null.
 
 ## User flow
 
@@ -43,10 +43,10 @@ flowchart TD
     E --> F["ReleaseRecord.create runs column prepare hooks"]
     F --> G["db.from checks raw text storage"]
     G --> H["ReleaseRecord.findOrFail runs consume hooks"]
-    H --> I["Assert JSON metadata and hydrated properties"]
+    H --> I["Assert JSON metadata, hydrated properties and null round trip"]
     I --> J["Assert create rejects invalid date"]
-    J --> K["db.from update stores malformed JSON without hooks"]
-    K --> L["Assert findOrFail rejects malformed JSON"]
+    J --> K["db.from update stores malformed or wrong-shape JSON without hooks"]
+    K --> L["Narrow the read exception and identify the affected column"]
     L --> M["Report successful smoke check"]
     M --> N["Finally close database connections"]
 ```

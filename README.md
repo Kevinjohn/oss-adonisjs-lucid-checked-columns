@@ -4,7 +4,7 @@ Checked JSON, ISO date and ISO timestamp columns for AdonisJS Lucid models. Each
 `prepare`/`consume` options for Lucid's `@column` decorator that refuse an invalid value in both
 directions, so a corrupt row fails loudly when it is read instead of reaching the application.
 
-Requires Node 24 or later and `@adonisjs/lucid` 22.
+Requires Node 24 or later, `@adonisjs/core` 7.0.1 or later within 7.x, and `@adonisjs/lucid` 22.
 
 ## Install
 
@@ -49,7 +49,7 @@ export default class Hero extends BaseModel {
 }
 ```
 
-The `table` and `column` arguments only name the column in error messages.
+The `table` and `column` arguments identify the column on exceptions and in their diagnostic messages.
 
 ## API
 
@@ -117,22 +117,30 @@ their respective predicates.
 
 ## Errors
 
-When storage validation fails during a Lucid model save or hydration, the column hook throws a plain
-`Error` with one of the messages below. The application decides how to report the storage validation
-error, including any HTTP response or stable error code it exposes. Errors thrown by a supplied type
-predicate propagate unchanged, whether it runs before encoding, on the encoded value or on read.
+When a Lucid model save or hydration fails storage validation, the column hook throws an AdonisJS
+exception with a stable `code`, status `500`, and `table` and `column` fields. The application
+decides how to report the exception and what response to send. A supplied type predicate's own
+errors propagate unchanged.
 
-- `Invalid persisted JSON in <table>.<column>`: a written value, its JSON encoding or a stored
-  value fails the type predicate, or stored text is not JSON. The encoding is checked because JSON can
-  change a value's shape: array holes and `NaN` become `null`, and `toJSON` replaces the value.
-  When stored text is not JSON, the error carries no `cause`: the parser's message can quote the
-  stored text, which may hold data that should not reach logs.
-- `Cannot persist undefined JSON in <table>.<column>`: a written value passes the type predicate but has
-  no JSON encoding (a function, for example).
-- `Cannot encode JSON in <table>.<column>`: encoding a written value threw (a `BigInt` or a cycle,
-  for example). The original error is the `cause`.
-- `Invalid persisted date in <table>.<column>`
-- `Invalid persisted timestamp in <table>.<column>`
+| Export on `errors`              | When the hook throws                                                                                                                                    | Diagnostic                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `E_INVALID_PERSISTED_JSON`      | Stored text is malformed or the decoded value fails the predicate during hydration. The exception omits the parser cause and the stored content.        | `Invalid persisted JSON in <table>.<column>`        |
+| `E_INVALID_JSON_COLUMN_VALUE`   | A value or its JSON encoding fails the predicate during preparation. Encoding can change the value's shape, for example when `toJSON` replaces a value. | `Invalid persisted JSON in <table>.<column>`        |
+| `E_UNDEFINED_JSON_COLUMN_VALUE` | An accepted value, such as a function, has no JSON encoding.                                                                                            | `Cannot persist undefined JSON in <table>.<column>` |
+| `E_JSON_COLUMN_ENCODING`        | Encoding throws, for example for a cycle or a `BigInt`. The original error is available as `cause`.                                                     | `Cannot encode JSON in <table>.<column>`            |
+| `E_INVALID_ISO_COLUMN_VALUE`    | A value fails the ISO format check on a read or write. The exception's `kind` is `date` or `timestamp`.                                                 | `Invalid persisted <kind> in <table>.<column>`      |
+
+```ts
+import { errors } from '@kevinjohn/adonisjs-lucid-checked-columns'
+
+function isInvalidReadingItemLabels(error: unknown): boolean {
+  return (
+    error instanceof errors.E_INVALID_PERSISTED_JSON &&
+    error.table === 'reading_items' &&
+    error.column === 'labels'
+  )
+}
+```
 
 ## Limits
 
