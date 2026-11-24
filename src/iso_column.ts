@@ -1,8 +1,16 @@
+import { E_INVALID_ISO_COLUMN_VALUE } from './errors.js'
 import type { IsoColumnOptions, IsoDate, IsoTimestamp } from './types.js'
 
 /**
  * True only for a real calendar date written `YYYY-MM-DD`. Month lengths and leap years are
  * checked arithmetically, so the answer never depends on the host time zone.
+ *
+ * @example
+ * ```ts
+ * import { isIsoDate } from '@kevinjohn/adonisjs-lucid-checked-columns'
+ *
+ * isIsoDate('2028-02-29') // true
+ * ```
  */
 export function isIsoDate(value: unknown): value is IsoDate {
   if (typeof value !== 'string') return false
@@ -19,6 +27,13 @@ export function isIsoDate(value: unknown): value is IsoDate {
 /**
  * True only for a string that round-trips exactly through `Date#toISOString()`: a UTC instant
  * with three millisecond digits and a trailing `Z`.
+ *
+ * @example
+ * ```ts
+ * import { isIsoTimestamp } from '@kevinjohn/adonisjs-lucid-checked-columns'
+ *
+ * isIsoTimestamp('2028-02-29T10:00:00.000Z') // true
+ * ```
  */
 export function isIsoTimestamp(value: unknown): value is IsoTimestamp {
   if (typeof value !== 'string') return false
@@ -42,7 +57,7 @@ function createIsoColumnOptions<T extends string>({
 }: IsoColumnInput): IsoColumnOptions<T> {
   const consume = (value: unknown) => {
     if (value === null) return null
-    if (!acceptsValue(value)) throw new Error(`Invalid persisted ${kind} in ${table}.${column}`)
+    if (!acceptsValue(value)) throw new E_INVALID_ISO_COLUMN_VALUE(table, column, kind)
     return value as T
   }
   return { prepare: consume, consume }
@@ -51,7 +66,18 @@ function createIsoColumnOptions<T extends string>({
 /**
  * Column options that keep a canonical `YYYY-MM-DD` string unchanged in both directions and refuse
  * anything else. `null` passes through. `T` lets a host name its own string type for the property.
- * @throws Error `Invalid persisted date in <table>.<column>`.
+ * @throws errors.E_INVALID_ISO_COLUMN_VALUE when the value is outside the canonical format.
+ *
+ * @example
+ * ```ts
+ * import { isoDateColumn } from '@kevinjohn/adonisjs-lucid-checked-columns'
+ * import { BaseModel, column } from '@adonisjs/lucid/orm'
+ *
+ * class ReadingItem extends BaseModel {
+ *   @column(isoDateColumn('reading_items', 'starts_on'))
+ *   declare startsOn: string | null
+ * }
+ * ```
  */
 export function isoDateColumn<T extends string = string>(
   table: string,
@@ -63,7 +89,18 @@ export function isoDateColumn<T extends string = string>(
 /**
  * Column options that keep a canonical UTC instant with millisecond precision unchanged in both
  * directions and refuse anything else. `null` passes through.
- * @throws Error `Invalid persisted timestamp in <table>.<column>`.
+ * @throws errors.E_INVALID_ISO_COLUMN_VALUE when the value is outside the canonical format.
+ *
+ * @example
+ * ```ts
+ * import { isoTimestampColumn } from '@kevinjohn/adonisjs-lucid-checked-columns'
+ * import { BaseModel, column } from '@adonisjs/lucid/orm'
+ *
+ * class ReadingItem extends BaseModel {
+ *   @column(isoTimestampColumn('reading_items', 'finished_at'))
+ *   declare finishedAt: string | null
+ * }
+ * ```
  */
 export function isoTimestampColumn<T extends string = string>(
   table: string,

@@ -52,4 +52,4 @@ flowchart TD
 
 The loop checks presence and membership together at each index.
 
-**Code references:** [isBoolean](../src/json_column.ts#L38), [isOneOf](../src/json_column.ts#L46), [isArrayOf](../src/json_column.ts#L57), [JsonValidator](../src/types.ts#L10).
+**Code references:** [isBoolean](../src/json_column.ts#L53), [isOneOf](../src/json_column.ts#L69), [isArrayOf](../src/json_column.ts#L90), [JsonValidator](../src/types.ts#L10).

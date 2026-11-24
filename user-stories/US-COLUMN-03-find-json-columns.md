@@ -40,4 +40,4 @@ flowchart TD
     B -->|No| D["return false"]
 ```
 
-**Code references:** [isJsonColumn](../src/json_column.ts#L122), [JSON_COLUMN marker](../src/json_column.ts#L5).
+**Code references:** [isJsonColumn](../src/json_column.ts#L181), [JSON_COLUMN marker](../src/json_column.ts#L11).

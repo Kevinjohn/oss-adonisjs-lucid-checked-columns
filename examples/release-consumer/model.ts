@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { AppFactory } from '@adonisjs/core/factories/app'
+import { Exception } from '@adonisjs/core/exceptions'
 import { Emitter } from '@adonisjs/core/events'
 import { LoggerFactory } from '@adonisjs/core/factories/logger'
 import { Database } from '@adonisjs/lucid/database'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import {
+  errors,
   isArrayOf,
   isBoolean,
   isIsoDate,
@@ -50,7 +52,7 @@ class ReleaseRecord extends BaseModel {
   declare id: number
 
   @column(jsonColumn('release_records', 'labels', isArrayOf(acceptsLabel)))
-  declare labels: 'verified'[]
+  declare labels: 'verified'[] | null
 
   @column(isoDateColumn('release_records', 'date'))
   declare date: string
@@ -81,7 +83,7 @@ export function typecheckColumnHooks() {
 try {
   await db.connection().schema.createTable(ReleaseRecord.table, (table) => {
     table.increments('id')
-    table.text('labels').notNullable()
+    table.text('labels')
     table.text('date').notNullable()
     table.text('timestamp').notNullable()
   })
@@ -107,15 +109,38 @@ try {
   assert.deepEqual(loaded.labels, ['verified'])
   assert.equal(loaded.date, date)
   assert.equal(loaded.timestamp, timestamp)
+  loaded.labels = null
+  await loaded.save()
+  const reloaded = await ReleaseRecord.findOrFail(saved.id)
+  const storedNull = await db.from(ReleaseRecord.table).where('id', saved.id).firstOrFail()
+  assert.equal(reloaded.labels, null)
+  assert.equal(storedNull.labels, null)
+
   await assert.rejects(
     ReleaseRecord.create({ labels: ['verified'], date: 'invalid', timestamp }),
-    /Invalid persisted date in release_records.date/
+    (error: unknown) => {
+      assert(error instanceof errors.E_INVALID_ISO_COLUMN_VALUE)
+      assert.equal(error.code, 'E_INVALID_ISO_COLUMN_VALUE')
+      assert.equal(error.kind, 'date')
+      assert.equal(error.message, 'Invalid persisted date in release_records.date')
+      return true
+    }
   )
-  await db.from(ReleaseRecord.table).where('id', saved.id).update({ labels: 'invalid JSON' })
-  await assert.rejects(
-    ReleaseRecord.findOrFail(saved.id),
-    /Invalid persisted JSON in release_records.labels/
-  )
+  for (const labels of ['{"private-sample"', '{"private-sample":true}']) {
+    await db.from(ReleaseRecord.table).where('id', saved.id).update({ labels })
+    await assert.rejects(ReleaseRecord.findOrFail(saved.id), (error: unknown) => {
+      assert(error instanceof errors.E_INVALID_PERSISTED_JSON)
+      assert(error instanceof Exception)
+      assert.equal(error.code, 'E_INVALID_PERSISTED_JSON')
+      assert.equal(error.status, 500)
+      assert.equal(error.table, ReleaseRecord.table)
+      assert.equal(error.column, 'labels')
+      assert.equal(error.message, 'Invalid persisted JSON in release_records.labels')
+      assert.equal(error.cause, undefined)
+      assert.doesNotMatch(String(error.stack), /private-sample/)
+      return true
+    })
+  }
   console.log('Packed checked columns passed the Lucid SQLite round trip.')
 } finally {
   await db.manager.closeAll()

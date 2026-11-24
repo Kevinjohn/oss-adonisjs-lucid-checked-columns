@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { LucidRow } from '@adonisjs/lucid/types/model'
-import { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
+import { errors, isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
 
 test.group('isoDateColumn', () => {
   test('keeps a canonical date unchanged in both directions', ({ assert }) => {
@@ -19,9 +19,14 @@ test.group('isoDateColumn', () => {
   test('refuses anything else in both directions', ({ assert }) => {
     const options = isoDateColumn('missions', 'starts_on')
     for (const value of ['2027-02-29', '2026-13-01', '2026-1-01', '2026-01-01T00:00:00.000Z', 7]) {
-      assert.throws(() => options.consume(value), 'Invalid persisted date in missions.starts_on')
+      assert.throws(
+        () => options.consume(value),
+        errors.E_INVALID_ISO_COLUMN_VALUE,
+        'Invalid persisted date in missions.starts_on'
+      )
       assert.throws(
         () => options.prepare(value as never),
+        errors.E_INVALID_ISO_COLUMN_VALUE,
         'Invalid persisted date in missions.starts_on'
       )
     }
@@ -57,10 +62,12 @@ test.group('isoTimestampColumn', () => {
     ]) {
       assert.throws(
         () => options.consume(value),
+        errors.E_INVALID_ISO_COLUMN_VALUE,
         'Invalid persisted timestamp in missions.created_at'
       )
       assert.throws(
         () => options.prepare(value as never),
+        errors.E_INVALID_ISO_COLUMN_VALUE,
         'Invalid persisted timestamp in missions.created_at'
       )
     }
