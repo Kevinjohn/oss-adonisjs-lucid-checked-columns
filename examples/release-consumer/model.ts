@@ -126,12 +126,16 @@ try {
       return true
     }
   )
-  for (const labels of ['{"private-sample"', '{"private-sample":true}']) {
+  const rejectedRows = [
+    { labels: '{"private-sample"', code: 'E_INVALID_PERSISTED_JSON' },
+    { labels: '{"private-sample":true}', code: 'E_INVALID_PERSISTED_JSON_VALUE' },
+  ] as const
+  for (const { labels, code } of rejectedRows) {
     await db.from(ReleaseRecord.table).where('id', saved.id).update({ labels })
     await assert.rejects(ReleaseRecord.findOrFail(saved.id), (error: unknown) => {
-      assert(error instanceof errors.E_INVALID_PERSISTED_JSON)
+      assert(error instanceof errors[code])
       assert(error instanceof Exception)
-      assert.equal(error.code, 'E_INVALID_PERSISTED_JSON')
+      assert.equal(error.code, code)
       assert.equal(error.status, 500)
       assert.equal(error.table, ReleaseRecord.table)
       assert.equal(error.column, 'labels')

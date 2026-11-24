@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-- Replace plain column errors with `errors.E_INVALID_PERSISTED_JSON` for hydration failures,
-  `errors.E_INVALID_JSON_COLUMN_VALUE` for rejected JSON writes,
+- Replace plain column errors with `errors.E_INVALID_PERSISTED_JSON` for malformed stored JSON,
+  `errors.E_INVALID_PERSISTED_JSON_VALUE` for decoded values rejected during hydration,
+  `errors.E_INVALID_JSON_COLUMN_VALUE` for rejected incoming values,
+  `errors.E_INVALID_ENCODED_JSON_VALUE` for rejected JSON representations,
   `errors.E_UNDEFINED_JSON_COLUMN_VALUE` for writes with no JSON encoding,
   `errors.E_JSON_COLUMN_ENCODING` for encoding exceptions, and
   `errors.E_INVALID_ISO_COLUMN_VALUE` for ISO format failures. The exceptions identify the table

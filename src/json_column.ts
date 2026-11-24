@@ -1,7 +1,9 @@
 import type { ColumnOptions } from '@adonisjs/lucid/types/model'
 import {
+  E_INVALID_ENCODED_JSON_VALUE,
   E_INVALID_JSON_COLUMN_VALUE,
   E_INVALID_PERSISTED_JSON,
+  E_INVALID_PERSISTED_JSON_VALUE,
   E_JSON_COLUMN_ENCODING,
   E_UNDEFINED_JSON_COLUMN_VALUE,
 } from './errors.js'
@@ -103,8 +105,10 @@ export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<Dens
  * A written value is validated before and after encoding. Under unchanged host validation rules,
  * the encoded value passes read-side validation. The `consume` hook still validates every read.
  *
- * @throws errors.E_INVALID_JSON_COLUMN_VALUE when a write or its encoding fails `acceptsValue`.
- * @throws errors.E_INVALID_PERSISTED_JSON when a stored value is malformed or fails `acceptsValue`.
+ * @throws errors.E_INVALID_JSON_COLUMN_VALUE when an incoming value fails `acceptsValue`.
+ * @throws errors.E_INVALID_ENCODED_JSON_VALUE when an encoded value fails `acceptsValue`.
+ * @throws errors.E_INVALID_PERSISTED_JSON when stored text is not valid JSON.
+ * @throws errors.E_INVALID_PERSISTED_JSON_VALUE when a decoded value fails `acceptsValue`.
  * @throws errors.E_UNDEFINED_JSON_COLUMN_VALUE when an accepted write has no JSON encoding.
  * @throws errors.E_JSON_COLUMN_ENCODING when encoding a write throws. The original error is the
  *   `cause`.
@@ -143,7 +147,7 @@ export function jsonColumn<T>(
       }
       // Encoding can change the shape (holes and NaN become null, toJSON replaces the value): refuse
       // an encoding the read side would reject instead of storing it.
-      if (!acceptsValue(JSON.parse(encoded))) throw new E_INVALID_JSON_COLUMN_VALUE(table, column)
+      if (!acceptsValue(JSON.parse(encoded))) throw new E_INVALID_ENCODED_JSON_VALUE(table, column)
       return encoded
     },
     consume(value) {
@@ -155,7 +159,7 @@ export function jsonColumn<T>(
         // No cause: the parser's message can quote the stored text, which may hold private data.
         throw new E_INVALID_PERSISTED_JSON(table, column)
       }
-      if (!acceptsValue(parsed)) throw new E_INVALID_PERSISTED_JSON(table, column)
+      if (!acceptsValue(parsed)) throw new E_INVALID_PERSISTED_JSON_VALUE(table, column)
       return parsed
     },
   }

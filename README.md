@@ -125,20 +125,23 @@ exception with a stable `code`, status `500`, and `table` and `column` fields. T
 decides how to report the exception and what response to send. A supplied type predicate's own
 errors propagate unchanged.
 
-| Export on `errors`              | When the hook throws                                                                                                                                    | Diagnostic                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `E_INVALID_PERSISTED_JSON`      | Stored text is malformed or the decoded value fails the predicate during hydration. The exception omits the parser cause and the stored content.        | `Invalid persisted JSON in <table>.<column>`        |
-| `E_INVALID_JSON_COLUMN_VALUE`   | A value or its JSON encoding fails the predicate during preparation. Encoding can change the value's shape, for example when `toJSON` replaces a value. | `Invalid persisted JSON in <table>.<column>`        |
-| `E_UNDEFINED_JSON_COLUMN_VALUE` | An accepted value, such as a function, has no JSON encoding.                                                                                            | `Cannot persist undefined JSON in <table>.<column>` |
-| `E_JSON_COLUMN_ENCODING`        | Encoding throws, for example for a cycle or a `BigInt`. The original error is available as `cause`.                                                     | `Cannot encode JSON in <table>.<column>`            |
-| `E_INVALID_ISO_COLUMN_VALUE`    | A value fails the ISO format check on a read or write. The exception's `kind` is `date` or `timestamp`.                                                 | `Invalid persisted <kind> in <table>.<column>`      |
+| Export on `errors`               | When the hook throws                                                                                    | Diagnostic                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `E_INVALID_PERSISTED_JSON`       | Stored text is malformed. The exception omits the parser cause and the stored content.                  | `Invalid persisted JSON in <table>.<column>`        |
+| `E_INVALID_PERSISTED_JSON_VALUE` | The decoded value fails the predicate during hydration.                                                 | `Invalid persisted JSON in <table>.<column>`        |
+| `E_INVALID_JSON_COLUMN_VALUE`    | The incoming value fails the predicate before encoding.                                                 | `Invalid persisted JSON in <table>.<column>`        |
+| `E_INVALID_ENCODED_JSON_VALUE`   | The JSON representation fails the predicate, for example when `toJSON` changes the shape.               | `Invalid persisted JSON in <table>.<column>`        |
+| `E_UNDEFINED_JSON_COLUMN_VALUE`  | An accepted value, such as a function, has no JSON encoding.                                            | `Cannot persist undefined JSON in <table>.<column>` |
+| `E_JSON_COLUMN_ENCODING`         | Encoding throws, for example for a cycle or a `BigInt`. The original error is available as `cause`.     | `Cannot encode JSON in <table>.<column>`            |
+| `E_INVALID_ISO_COLUMN_VALUE`     | A value fails the ISO format check on a read or write. The exception's `kind` is `date` or `timestamp`. | `Invalid persisted <kind> in <table>.<column>`      |
 
 ```ts
 import { errors } from '@kevinjohn/adonisjs-lucid-checked-columns'
 
 function isInvalidReadingItemLabels(error: unknown): boolean {
   return (
-    error instanceof errors.E_INVALID_PERSISTED_JSON &&
+    (error instanceof errors.E_INVALID_PERSISTED_JSON ||
+      error instanceof errors.E_INVALID_PERSISTED_JSON_VALUE) &&
     error.table === 'reading_items' &&
     error.column === 'labels'
   )

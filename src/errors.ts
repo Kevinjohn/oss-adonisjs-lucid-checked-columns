@@ -1,6 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
-/** Stored JSON is malformed or fails the column's type predicate. */
+/** Stored text is not valid JSON. */
 export class InvalidPersistedJsonException extends Exception {
   static code = 'E_INVALID_PERSISTED_JSON'
   static status = 500
@@ -13,9 +13,35 @@ export class InvalidPersistedJsonException extends Exception {
   }
 }
 
-/** A value or its JSON encoding fails the column's type predicate before a write. */
+/** A stored value fails the column's type predicate after decoding. */
+export class InvalidPersistedJsonValueException extends Exception {
+  static code = 'E_INVALID_PERSISTED_JSON_VALUE'
+  static status = 500
+
+  constructor(
+    readonly table: string,
+    readonly column: string
+  ) {
+    super(`Invalid persisted JSON in ${table}.${column}`)
+  }
+}
+
+/** An incoming value fails the column's type predicate before encoding. */
 export class InvalidJsonColumnValueException extends Exception {
   static code = 'E_INVALID_JSON_COLUMN_VALUE'
+  static status = 500
+
+  constructor(
+    readonly table: string,
+    readonly column: string
+  ) {
+    super(`Invalid persisted JSON in ${table}.${column}`)
+  }
+}
+
+/** A prepared value's JSON representation fails the column's type predicate. */
+export class InvalidEncodedJsonValueException extends Exception {
+  static code = 'E_INVALID_ENCODED_JSON_VALUE'
   static status = 500
 
   constructor(
@@ -68,7 +94,9 @@ export class InvalidIsoColumnValueException extends Exception {
 }
 
 export const E_INVALID_PERSISTED_JSON = InvalidPersistedJsonException
+export const E_INVALID_PERSISTED_JSON_VALUE = InvalidPersistedJsonValueException
 export const E_INVALID_JSON_COLUMN_VALUE = InvalidJsonColumnValueException
+export const E_INVALID_ENCODED_JSON_VALUE = InvalidEncodedJsonValueException
 export const E_UNDEFINED_JSON_COLUMN_VALUE = UndefinedJsonColumnValueException
 export const E_JSON_COLUMN_ENCODING = JsonColumnEncodingException
 export const E_INVALID_ISO_COLUMN_VALUE = InvalidIsoColumnValueException

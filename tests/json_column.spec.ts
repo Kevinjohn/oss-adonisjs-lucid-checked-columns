@@ -40,12 +40,12 @@ test.group('jsonColumn', () => {
     const options = jsonColumn('heroes', 'active', isBoolean)
     assert.throws(
       () => options.consume('"yes"'),
-      errors.E_INVALID_PERSISTED_JSON,
+      errors.E_INVALID_PERSISTED_JSON_VALUE,
       'Invalid persisted JSON in heroes.active'
     )
     assert.throws(
       () => options.consume(1),
-      errors.E_INVALID_PERSISTED_JSON,
+      errors.E_INVALID_PERSISTED_JSON_VALUE,
       'Invalid persisted JSON in heroes.active'
     )
   })
@@ -130,7 +130,7 @@ test.group('jsonColumn', () => {
     // isOneOf matches NaN (Array.includes uses SameValueZero); both encode as null.
     assert.throws(
       () => limits.prepare([Number.NaN, Infinity] as never),
-      errors.E_INVALID_JSON_COLUMN_VALUE,
+      errors.E_INVALID_ENCODED_JSON_VALUE,
       'Invalid persisted JSON in heroes.limits'
     )
 
@@ -142,7 +142,7 @@ test.group('jsonColumn', () => {
     const disguised = { alias: 'Batman', toJSON: () => 'Bruce Wayne' }
     assert.throws(
       () => alias.prepare(disguised),
-      errors.E_INVALID_JSON_COLUMN_VALUE,
+      errors.E_INVALID_ENCODED_JSON_VALUE,
       'Invalid persisted JSON in heroes.alias'
     )
   })
@@ -233,9 +233,7 @@ test.group('jsonColumn on a Lucid model', () => {
     assert.deepEqual(fetched.aliases, ['Batman', 'Robin'])
   })
 
-  test('save refuses an invalid value and hydration refuses a malformed row', async ({
-    assert,
-  }) => {
+  test('save and hydration distinguish JSON validation failures', async ({ assert }) => {
     const { Hero, rows } = createHeroModel()
     const hero = new Hero()
     hero.aliases = ['Joker'] as never
@@ -244,12 +242,23 @@ test.group('jsonColumn on a Lucid model', () => {
       errors.E_INVALID_JSON_COLUMN_VALUE,
       'Invalid persisted JSON in heroes.aliases'
     )
+    const validAliases: ('Batman' | 'Robin')[] = ['Robin']
+    hero.aliases = Object.assign(validAliases, { toJSON: () => 'Robin' })
+    await assert.rejects(
+      () => hero.save(),
+      errors.E_INVALID_ENCODED_JSON_VALUE,
+      'Invalid persisted JSON in heroes.aliases'
+    )
     assert.equal(rows.size, 0)
 
-    for (const aliases of ['["Batman"', '["Joker"]']) {
+    const rejectedRows = [
+      { aliases: '["Batman"', identity: errors.E_INVALID_PERSISTED_JSON },
+      { aliases: '["Joker"]', identity: errors.E_INVALID_PERSISTED_JSON_VALUE },
+    ]
+    for (const { aliases, identity } of rejectedRows) {
       assert.throws(
         () => Hero.$createFromAdapterResult({ id: 2, aliases }),
-        errors.E_INVALID_PERSISTED_JSON,
+        identity,
         'Invalid persisted JSON in heroes.aliases'
       )
     }
@@ -456,7 +465,7 @@ test.group('type predicates', () => {
     assert.isFalse(isFlags(Array(1)))
     assert.throws(
       () => jsonColumn('heroes', 'flags', isFlags).consume(Array(1)),
-      errors.E_INVALID_PERSISTED_JSON,
+      errors.E_INVALID_PERSISTED_JSON_VALUE,
       'Invalid persisted JSON in heroes.flags'
     )
   })

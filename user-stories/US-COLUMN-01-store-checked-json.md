@@ -19,9 +19,9 @@ As an application developer, I want a model property stored as JSON and checked 
 
 - On save, an accepted non-null value is written as `JSON.stringify(value)`. On read, every string is parsed with `JSON.parse`; a non-string value from the driver is validated as it is. A direct `null` input passes through either hook without validation; JSON text `null` is parsed and validated like other text.
 - The stored representation is JSON text, suitable for a text column. A decoded native scalar string is not supported: strings are always parsed as JSON, with no parse-error fallback. The packed consumer verifies SQLite text storage; other driver encodings are not claimed.
-- On save, a non-null value must pass `acceptsValue` both before encoding and after its JSON text is parsed back, so under unchanged host validation rules whatever is written can be read back. If either check fails, the save throws `errors.E_INVALID_JSON_COLUMN_VALUE` and nothing is written. Read-side validation still runs for every read.
+- On save, a non-null value must pass `acceptsValue` both before encoding and after its JSON text is parsed back, so under unchanged host validation rules whatever is written can be read back. A predicate rejection throws `errors.E_INVALID_JSON_COLUMN_VALUE` before encoding or `errors.E_INVALID_ENCODED_JSON_VALUE` after encoding, and nothing is written. Read-side validation still runs for every read.
 - After a value passes `acceptsValue`, an encoding that returns `undefined` (a function, for example) throws `errors.E_UNDEFINED_JSON_COLUMN_VALUE`, and an encoding that throws (a `BigInt` or a cycle) throws `errors.E_JSON_COLUMN_ENCODING` with the original error as `cause`.
-- On read, text that is not JSON, or a decoded value that fails `acceptsValue`, throws `errors.E_INVALID_PERSISTED_JSON`; the row does not hydrate.
+- On read, malformed text throws `errors.E_INVALID_PERSISTED_JSON`. A decoded value that fails `acceptsValue` throws `errors.E_INVALID_PERSISTED_JSON_VALUE`. Either failure stops hydration without exposing stored content in the exception.
 - An exception thrown by the host predicate propagates unchanged during either write-side check or the read-side check. Only an exception during encoding is wrapped with a cause.
 - The helper refuses an invalid value rather than repairing it; beyond JSON encoding on save and parsing on read, it changes nothing. Query-builder writes bypass it.
 - Lucid can skip an update before `prepare` runs when a top-level object value owns an `isDirty: false` property. Avoid that key for top-level object values in model saves; resolving arbitrary keys requires Lucid dirty-tracking changes.
@@ -59,7 +59,7 @@ flowchart TD
     F -->|Returns| U{"encoded is undefined?"}
     U -->|Yes| N["throw E_UNDEFINED_JSON_COLUMN_VALUE"]
     U -->|No| R{"acceptsValue(JSON.parse(encoded))?"}
-    R -->|False| I
+    R -->|False| Y["throw E_INVALID_ENCODED_JSON_VALUE"]
     R -->|Throws from predicate| X
     R -->|True| P5["return encoded"]
     B --> C["consume(value)"]
@@ -70,9 +70,9 @@ flowchart TD
     J -->|Throws| V["throw E_INVALID_PERSISTED_JSON"]
     J -->|Returns| C3{"acceptsValue(parsed)?"}
     C2 -->|No: parsed = value| C3
-    C3 -->|False| V
+    C3 -->|False| W["throw E_INVALID_PERSISTED_JSON_VALUE"]
     C3 -->|Throws| X
     C3 -->|True| C5["return parsed"]
 ```
 
-**Code references:** [jsonColumn](../src/json_column.ts#L123), [type predicates](../src/json_column.ts#L53), [JsonValidator](../src/types.ts#L10).
+**Code references:** [jsonColumn](../src/json_column.ts#L127), [type predicates](../src/json_column.ts#L55), [JsonValidator](../src/types.ts#L10).
