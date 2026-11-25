@@ -15,6 +15,7 @@ const plannerPath = path.join(repoRoot, 'bin/check_changed_plan.ts')
 type FixtureOptions = {
   command?: 'normal' | 'hang' | 'missing' | 'no-ready' | 'split-utf8'
   hook?: 'record-term' | 'fail-reap'
+  realTests?: 'pass' | 'empty'
   gitMissing?: boolean
   gitFailure?: 'exit' | 'signal'
 }
@@ -70,6 +71,10 @@ async function makeCheckChangedFixture(
   await writeFile(path.join(root, 'bin/check_changed.ts'), await readFile(runnerPath))
   await writeFile(path.join(root, 'bin/check_changed_plan.ts'), await readFile(plannerPath))
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}\n')
+  await writeFile(
+    path.join(root, 'tsconfig.json'),
+    '{"compilerOptions":{"rewriteRelativeImportExtensions":true}}\n'
+  )
   await writeFile(path.join(root, 'README.md'), 'fixture baseline\n')
   await symlink(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir')
 
@@ -82,8 +87,23 @@ async function makeCheckChangedFixture(
   runGit(['add', '.'])
   runGit(['commit', '-qm', 'fixture baseline'])
   const base = execFileSync(git, ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
-  await writeFile(path.join(root, 'src-trigger.ts'), 'export const changed = true\n')
-  runGit(['add', 'src-trigger.ts'])
+  if (options.realTests) {
+    await writeFile(
+      path.join(root, 'bin/test.ts'),
+      await readFile(path.join(repoRoot, 'bin/test.ts'))
+    )
+    await mkdir(path.join(root, 'tests'))
+    await writeFile(
+      path.join(root, 'tests/example.spec.ts'),
+      options.realTests === 'pass'
+        ? `import { test } from '@japa/runner'\ntest('example', () => {})\n`
+        : 'export {}\n'
+    )
+    runGit(['add', 'bin/test.ts', 'tests/example.spec.ts'])
+  } else {
+    await writeFile(path.join(root, 'src-trigger.ts'), 'export const changed = true\n')
+    runGit(['add', 'src-trigger.ts'])
+  }
   runGit(['commit', '-qm', 'select static checks'])
   if (options.gitFailure) {
     await rm(path.join(supportBin, 'git'))
@@ -108,7 +128,7 @@ async function makeCheckChangedFixture(
     const commandPath = path.join(bin, 'pnpm')
     await writeFile(
       commandPath,
-      `#!${process.execPath}\nimport { spawn } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nimport { writeFileSync } from 'node:fs'\nwriteFileSync(${JSON.stringify(commandPid)}, String(process.pid) + '\\n')\nconst args = process.argv.slice(2)\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\nif (process.env.CHECK_CHANGED_SPLIT_UTF8 === '1') {\n  const text = Buffer.from('split é\\n')\n  process.stdout.write(text.subarray(0, 7))\n  await new Promise((resolve) => setTimeout(resolve, 100))\n  process.stdout.write(text.subarray(7))\n  process.exit(1)\n}\nconsole.log('Executed tests: 1')\n`,
+      `#!${process.execPath}\nimport { spawn, spawnSync } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'\nimport { writeFileSync } from 'node:fs'\nwriteFileSync(${JSON.stringify(commandPid)}, String(process.pid) + '\\n')\nconst args = process.argv.slice(2)\nif (${Boolean(options.realTests)} && args[0] === 'quick:test') {\n  const result = spawnSync(process.execPath, ['--import=@poppinss/ts-exec', 'bin/test.ts', '--reporters=dot', ...args.slice(1)], { stdio: 'inherit' })\n  process.exit(result.status ?? 1)\n}\nawait writeFile(${JSON.stringify(log)}, (await readFile(${JSON.stringify(log)}, 'utf8')) + args.join(' ') + '\\n')\nif (process.env.CHECK_CHANGED_HANG === '1') {\n  spawn(process.execPath, ['worker.js'], { cwd: process.cwd(), stdio: 'ignore' })\n  for (let attempt = 0; attempt < 250; attempt++) {\n    if (await readFile(${JSON.stringify(ready)}, 'utf8').catch(() => '')) break\n    await new Promise((resolve) => setTimeout(resolve, 20))\n  }\n  setInterval(() => {}, 1000)\n}\nif (process.env.CHECK_CHANGED_SPLIT_UTF8 === '1') {\n  const text = Buffer.from('split é\\n')\n  process.stdout.write(text.subarray(0, 7))\n  await new Promise((resolve) => setTimeout(resolve, 100))\n  process.stdout.write(text.subarray(7))\n  process.exit(1)\n}\nconsole.log('Executed tests: 1')\n`,
       { mode: 0o755 }
     )
   }
@@ -186,6 +206,48 @@ function launch(f: Fixture): ChildProcess {
   f.child = child
   return child
 }
+
+async function runRealTests(f: Fixture) {
+  const result = await collectExit(await readChildOutput(launch(f)))
+  await rm(path.join(f.directory, 'command.pid'), { force: true })
+  return result
+}
+
+test('counts tests from the real runner with the dot reporter and refuses zero tests', async ({
+  cleanup,
+}) => {
+  const passing = await makeCheckChangedFixture(cleanup, { realTests: 'pass' })
+  const passed = await runRealTests(passing)
+  await assert.rejects(readFile(path.join(passing.directory, 'command.pid')), { code: 'ENOENT' })
+  assert.equal(passed.code, 0, passed.text)
+  assert.match(passed.text, /pass tests \(1 tests\)/)
+
+  const noTests = await makeCheckChangedFixture(cleanup, { realTests: 'empty' })
+  const empty = await runRealTests(noTests)
+  await assert.rejects(readFile(path.join(noTests.directory, 'command.pid')), { code: 'ENOENT' })
+  assert.equal(empty.code, 1, empty.text)
+  assert.match(empty.text, /fail tests \(exit 1\)/)
+  assert.match(empty.text, /No tests executed/)
+}).timeout(30_000)
+
+test('an interrupted real-run fixture retains its live cleanup target', async () => {
+  const cleanups: Array<() => Promise<void>> = []
+  const f = await makeCheckChangedFixture((callback) => cleanups.push(callback), {
+    realTests: 'pass',
+    command: 'hang',
+  })
+  try {
+    const completion = runRealTests(f)
+    const pid = await waitForPid(path.join(f.directory, 'command.pid'))
+    await waitForPid(f.ready)
+    assert.equal(await isAlive(pid), true)
+    await cleanups[0]()
+    await completion
+    assert.equal(await isAlive(pid), false)
+  } finally {
+    await cleanups[0]()
+  }
+}).timeout(10_000)
 
 test('reports a missing Git executable with its spawn error', async ({ cleanup }) => {
   const f = await makeCheckChangedFixture(cleanup, { gitMissing: true })
