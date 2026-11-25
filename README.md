@@ -4,8 +4,6 @@ Checked JSON, ISO date and ISO timestamp columns for AdonisJS Lucid models. Each
 `prepare`/`consume` options for Lucid's `@column` decorator that refuse an invalid value in both
 directions, so a corrupt row fails loudly when it is read instead of reaching the application.
 
-Requires Node 24 or later, `@adonisjs/core` 7, and `@adonisjs/lucid` 22.
-
 ## Install
 
 Releases are GitHub release tarballs; the package is not on the npm registry.
@@ -141,6 +139,10 @@ function isInvalidReadingItemLabels(error: unknown): boolean {
   )
 }
 ```
+
+## Supported versions
+
+Requires Node 24 or later, `@adonisjs/core` 7, and `@adonisjs/lucid` 22.
 
 ## Limits
 

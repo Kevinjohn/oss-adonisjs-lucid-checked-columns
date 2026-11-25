@@ -4,8 +4,8 @@ import {
   E_INVALID_PERSISTED_JSON,
   E_JSON_COLUMN_ENCODING,
   E_UNDEFINED_JSON_COLUMN_VALUE,
-} from './errors.js'
-import type { JsonColumnOptions, JsonValidator } from './types.js'
+} from './errors.ts'
+import type { JsonColumnOptions, JsonValidator } from './types.ts'
 
 /** Marks a column declared with `jsonColumn`, so the stored encoding can be read from the model. */
 const JSON_COLUMN = Object.freeze({

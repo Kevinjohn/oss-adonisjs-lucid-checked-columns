@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { LucidRow } from '@adonisjs/lucid/types/model'
-import { errors, isArrayOf, isBoolean, isJsonColumn, isOneOf, jsonColumn } from '../index.js'
+import { errors, isArrayOf, isBoolean, isJsonColumn, isOneOf, jsonColumn } from '../index.ts'
 
 test.group('jsonColumn', () => {
   test('encodes a valid value on write and decodes it on read', ({ assert }) => {

@@ -1,5 +1,5 @@
-import { E_INVALID_ISO_COLUMN_VALUE } from './errors.js'
-import type { IsoColumnOptions, IsoDate, IsoTimestamp } from './types.js'
+import { E_INVALID_ISO_COLUMN_VALUE } from './errors.ts'
+import type { IsoColumnOptions, IsoDate, IsoTimestamp } from './types.ts'
 
 /**
  * True only for a real calendar date written `YYYY-MM-DD`. Month lengths and leap years are
