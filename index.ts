@@ -1,10 +1,10 @@
-export * as errors from './src/errors.js'
-export { isArrayOf, isBoolean, isJsonColumn, isOneOf, jsonColumn } from './src/json_column.js'
-export { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from './src/iso_column.js'
+export * as errors from './src/errors.ts'
+export { isArrayOf, isBoolean, isJsonColumn, isOneOf, jsonColumn } from './src/json_column.ts'
+export { isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from './src/iso_column.ts'
 export type {
   IsoColumnOptions,
   IsoDate,
   IsoTimestamp,
   JsonColumnOptions,
   JsonValidator,
-} from './src/types.js'
+} from './src/types.ts'

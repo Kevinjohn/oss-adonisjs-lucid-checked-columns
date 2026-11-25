@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import type { LucidRow } from '@adonisjs/lucid/types/model'
-import { errors, isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.js'
+import { errors, isIsoDate, isIsoTimestamp, isoDateColumn, isoTimestampColumn } from '../index.ts'
 
 test.group('isoDateColumn', () => {
   test('keeps a canonical date unchanged in both directions', ({ assert }) => {
