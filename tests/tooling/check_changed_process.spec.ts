@@ -207,20 +207,47 @@ function launch(f: Fixture): ChildProcess {
   return child
 }
 
+async function runRealTests(f: Fixture) {
+  const result = await collectExit(await readChildOutput(launch(f)))
+  await rm(path.join(f.directory, 'command.pid'), { force: true })
+  return result
+}
+
 test('counts tests from the real runner with the dot reporter and refuses zero tests', async ({
   cleanup,
 }) => {
   const passing = await makeCheckChangedFixture(cleanup, { realTests: 'pass' })
-  const passed = await collectExit(await readChildOutput(launch(passing)))
+  const passed = await runRealTests(passing)
+  await assert.rejects(readFile(path.join(passing.directory, 'command.pid')), { code: 'ENOENT' })
   assert.equal(passed.code, 0, passed.text)
   assert.match(passed.text, /pass tests \(1 tests\)/)
 
   const noTests = await makeCheckChangedFixture(cleanup, { realTests: 'empty' })
-  const empty = await collectExit(await readChildOutput(launch(noTests)))
+  const empty = await runRealTests(noTests)
+  await assert.rejects(readFile(path.join(noTests.directory, 'command.pid')), { code: 'ENOENT' })
   assert.equal(empty.code, 1, empty.text)
   assert.match(empty.text, /fail tests \(exit 1\)/)
   assert.match(empty.text, /No tests executed/)
 }).timeout(30_000)
+
+test('an interrupted real-run fixture retains its live cleanup target', async () => {
+  const cleanups: Array<() => Promise<void>> = []
+  const f = await makeCheckChangedFixture((callback) => cleanups.push(callback), {
+    realTests: 'pass',
+    command: 'hang',
+  })
+  try {
+    const completion = runRealTests(f)
+    const pid = await waitForPid(path.join(f.directory, 'command.pid'))
+    await waitForPid(f.ready)
+    assert.equal(await isAlive(pid), true)
+    await cleanups[0]()
+    await completion
+    assert.equal(await isAlive(pid), false)
+  } finally {
+    await cleanups[0]()
+  }
+}).timeout(10_000)
 
 test('reports a missing Git executable with its spawn error', async ({ cleanup }) => {
   const f = await makeCheckChangedFixture(cleanup, { gitMissing: true })
