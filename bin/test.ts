@@ -12,7 +12,7 @@ configure({
     (runner) => {
       const { passed, failed, regression } = runner.getSummary().aggregates
       const executed = passed + failed + regression
-      console.log(`Executed tests: ${executed}`)
+      console.log(`\nExecuted tests: ${executed}`)
       if (executed === 0) {
         console.error('No tests executed: check the --files, --tests and --groups filters')
         process.exitCode = 1

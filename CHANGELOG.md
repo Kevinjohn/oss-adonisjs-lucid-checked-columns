@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve executed test counts in changed checks when using the dot reporter.
+
 ## 0.4.0 - 2026-11-24
 
 - Replace plain column errors with `errors.E_INVALID_PERSISTED_JSON` for hydration failures,
