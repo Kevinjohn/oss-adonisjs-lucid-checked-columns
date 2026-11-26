@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Preserve executed test counts in changed checks when using the dot reporter.
+- Require successful main CI for the release commit before packaging the GitHub release archive.
 
 ## 0.4.0 - 2026-11-24
 

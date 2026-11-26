@@ -185,3 +185,9 @@ bash bin/release_consumer_smoke.sh tmp/release/*.tgz
 ## License
 
 MIT
+
+## Releasing
+
+To release, merge the version and changelog update to `main`, then run the **release** workflow
+from `main` in GitHub Actions. It waits for the main **checks** run for that commit and requires
+all its check jobs to succeed before building and checking the release archive.
