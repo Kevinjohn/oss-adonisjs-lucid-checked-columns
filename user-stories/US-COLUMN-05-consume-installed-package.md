@@ -2,9 +2,9 @@
 
 As an application developer, I want to import the published hooks and types into a Lucid model so my application can typecheck its declarations and read back what it writes.
 
-**Status:** Current in v0.4.0.
+**Status:** Current in the reviewed source; the installation guide links the v0.4.0 release.
 **Access:** An ESM application using the Node, AdonisJS core and Lucid versions in the [package manifest](../package.json).
-**Entry:** Install [v0.4.0](../README.md#install), then import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`.
+**Entry:** Install a packaged candidate or the [v0.4.0 release](../README.md#install), then import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`.
 **Documentation:** [Install](../README.md#install), [Use](../README.md#use), [API](../README.md#api).
 **Source:** [Root exports](../index.ts), [type entry](../src/types.ts), [package manifest](../package.json).
 **Coverage:** [Packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh).
@@ -49,7 +49,7 @@ flowchart TD
     K --> L["Narrow the read exception and identify the affected column"]
     L --> M["Report successful smoke check"]
     M --> N["Finally close database connections"]
-    L -->|Assertion or read fails| N
+    L -->|Assertion fails or read has an unexpected outcome| N
     N --> O["Shell exit removes temporary fixture"]
 ```
 

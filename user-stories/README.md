@@ -1,6 +1,6 @@
 # User story catalogue
 
-Reviewed against implementation `484e3a78d06d045cf81d69920d38665ea7b2bffc`. The catalogue covers both published entry points, model persistence and standalone checks.
+Reviewed against implementation `612e1719bef6d4b259ed1664133647885e790e48`. The catalogue covers both published entry points, model persistence and standalone checks.
 
 ## Index
 
