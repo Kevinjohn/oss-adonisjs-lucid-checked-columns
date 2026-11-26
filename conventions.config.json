@@ -1,0 +1,13 @@
+{
+  "departures": {
+    "file": "DECISIONS.md",
+    "heading": "AdonisJS framework departures",
+    "entries": [
+      { "entry": 1, "item": "TOOL-3", "path": "examples/release-consumer/tsconfig.json" },
+      { "entry": 2, "item": "PKG-1", "path": "examples/release-consumer/model.ts" },
+      { "entry": 3, "item": "PKG-5", "path": "examples/release-consumer/package.json" },
+      { "entry": 4, "item": "PKG-6", "path": "examples/release-consumer/package.json" },
+      { "entry": 5, "item": "PKG-43", "path": "examples/release-consumer/package.json" }
+    ]
+  }
+}
