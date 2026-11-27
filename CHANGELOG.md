@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move the release consumer smoke fixture from `examples/release-consumer` to
+  `tests/fixtures/release_consumer` and retire the associated convention departures.
 - Preserve executed test counts in changed checks when using the dot reporter.
 - Require successful main CI for the release commit before packaging the GitHub release archive.
 
