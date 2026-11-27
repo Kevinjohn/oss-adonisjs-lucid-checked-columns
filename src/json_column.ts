@@ -5,7 +5,7 @@ import {
   E_JSON_COLUMN_ENCODING,
   E_UNDEFINED_JSON_COLUMN_VALUE,
 } from './errors.ts'
-import type { JsonColumnOptions, JsonValidator } from './types.ts'
+import type { JsonColumnOptions, JsonTypePredicate } from './types.ts'
 
 /** Marks a column declared with `jsonColumn`, so the stored encoding can be read from the model. */
 const JSON_COLUMN = Object.freeze({
@@ -50,7 +50,7 @@ type JsonColumnInput<T> = T extends DenseArray<infer Element> ? JsonColumnInput<
  * isBoolean(false) // true
  * ```
  */
-export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
+export const isBoolean: JsonTypePredicate<boolean> = (value): value is boolean =>
   typeof value === 'boolean'
 
 /**
@@ -68,12 +68,12 @@ export const isBoolean: JsonValidator<boolean> = (value): value is boolean =>
  */
 export function isOneOf<const V extends readonly (string | number)[]>(
   values: V
-): JsonValidator<ListedMember<V>> {
+): JsonTypePredicate<ListedMember<V>> {
   const allowed = new Set<unknown>()
   for (let index = 0; index < values.length; index++) {
     if (Object.hasOwn(values, index)) allowed.add(values[index])
   }
-  return ((value: unknown) => allowed.has(value)) as JsonValidator<ListedMember<V>>
+  return ((value: unknown) => allowed.has(value)) as JsonTypePredicate<ListedMember<V>>
 }
 
 /**
@@ -87,7 +87,7 @@ export function isOneOf<const V extends readonly (string | number)[]>(
  * isFlags([true, false]) // true
  * ```
  */
-export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<DenseArray<T>> {
+export function isArrayOf<T>(acceptsValue: JsonTypePredicate<T>): JsonTypePredicate<DenseArray<T>> {
   return (value): value is DenseArray<T> => {
     if (!Array.isArray(value)) return false
     for (let index = 0; index < value.length; index++) {
@@ -99,7 +99,7 @@ export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<Dens
 
 /**
  * Column options that store one model property as JSON text and refuse an invalid value in both
- * directions. `null` passes through unchanged. `table` and `column` only name the column in errors.
+ * directions. `null` passes through unchanged. `table` and `column` only name the column in exceptions.
  * A written value is validated before and after encoding. Under unchanged host validation rules,
  * the encoded value passes read-side validation. The `consume` hook still validates every read.
  *
@@ -123,7 +123,7 @@ export function isArrayOf<T>(acceptsValue: JsonValidator<T>): JsonValidator<Dens
 export function jsonColumn<T>(
   table: string,
   column: string,
-  acceptsValue: JsonValidator<T>
+  acceptsValue: JsonTypePredicate<T>
 ): JsonColumnOptions<T, JsonColumnInput<T>> {
   return {
     meta: JSON_COLUMN,

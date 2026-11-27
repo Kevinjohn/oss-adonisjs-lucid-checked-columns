@@ -59,7 +59,9 @@ test.group('jsonColumn', () => {
     )
   })
 
-  test('a malformed stored value refusal carries no stored text or parser cause', ({ assert }) => {
+  test('a malformed stored value exception carries no stored text or parser cause', ({
+    assert,
+  }) => {
     const options = jsonColumn('heroes', 'secret', isBoolean)
     try {
       options.consume('{"password": "hunter2"')
@@ -147,7 +149,9 @@ test.group('jsonColumn', () => {
     )
   })
 
-  test('wraps an encoding error in a column error with the original as its cause', ({ assert }) => {
+  test('wraps an encoding error in a column exception with the original as its cause', ({
+    assert,
+  }) => {
     const acceptsAnyValue = (value: unknown): value is unknown => value !== null
     const options = jsonColumn('heroes', 'origin', acceptsAnyValue)
     const cycle: Record<string, unknown> = {}

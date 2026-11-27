@@ -6,5 +6,5 @@ export type {
   IsoDate,
   IsoTimestamp,
   JsonColumnOptions,
-  JsonValidator,
+  JsonTypePredicate,
 } from './src/types.ts'
