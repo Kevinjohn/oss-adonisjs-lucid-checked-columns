@@ -7,7 +7,7 @@ export type JsonColumnOptions<T, Input = T> = Pick<ColumnOptions, 'meta'> & {
 }
 
 /** A TypeScript type predicate narrowing unknown values to the type one JSON column may hold. */
-export type JsonValidator<T> = (value: unknown) => value is T
+export type JsonTypePredicate<T> = (value: unknown) => value is T
 
 /** Column options returned by the ISO helpers; pass them to Lucid's `@column` decorator. */
 export type IsoColumnOptions<T extends string> = {

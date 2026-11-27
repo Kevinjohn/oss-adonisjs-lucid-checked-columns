@@ -76,4 +76,4 @@ flowchart TD
     C3 -->|True| C5["return parsed"]
 ```
 
-**Code references:** [jsonColumn](../src/json_column.ts#L123), [type predicates](../src/json_column.ts#L53), [JsonValidator](../src/types.ts#L10).
+**Code references:** [jsonColumn](../src/json_column.ts#L123), [type predicates](../src/json_column.ts#L53), [JsonTypePredicate](../src/types.ts#L10).

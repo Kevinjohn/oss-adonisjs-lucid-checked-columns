@@ -20,7 +20,7 @@ import {
   type IsoDate,
   type IsoTimestamp,
   type JsonColumnOptions,
-  type JsonValidator as RootValidator,
+  type JsonTypePredicate as RootTypePredicate,
 } from '@kevinjohn/adonisjs-lucid-checked-columns'
 import type {
   IsoColumnOptions as SubpathIsoOptions,
@@ -29,7 +29,7 @@ import type {
   JsonColumnOptions as SubpathJsonOptions,
 } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
 // The inline form keeps a runtime import under verbatimModuleSyntax, so the subpath must load.
-import { type JsonValidator } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
+import { type JsonTypePredicate } from '@kevinjohn/adonisjs-lucid-checked-columns/types'
 
 const app = new AppFactory().create(new URL('../', import.meta.url), () => {})
 const db = new Database(
@@ -43,7 +43,7 @@ const db = new Database(
   new Emitter(app)
 )
 BaseModel.useAdapter(db.modelAdapter())
-const acceptsLabel: JsonValidator<'verified'> = isOneOf(['verified'])
+const acceptsLabel: JsonTypePredicate<'verified'> = isOneOf(['verified'])
 
 class ReleaseRecord extends BaseModel {
   static table = 'release_records'
@@ -69,7 +69,7 @@ export const sameTypeIdentities: [
   Equal<IsoTimestamp, SubpathTimestamp>,
   Equal<IsoColumnOptions<IsoDate>, SubpathIsoOptions<SubpathDate>>,
   Equal<JsonColumnOptions<string[]>, SubpathJsonOptions<string[]>>,
-  Equal<RootValidator<IsoDate>, JsonValidator<SubpathDate>>,
+  Equal<RootTypePredicate<IsoDate>, JsonTypePredicate<SubpathDate>>,
 ] = [true, true, true, true, true]
 
 // Verify that unresolved declaration re-exports cannot silently pass this consumer's typecheck.

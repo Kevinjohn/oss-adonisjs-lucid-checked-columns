@@ -74,7 +74,7 @@ On write, the value and its JSON encoding are both checked. The encoded text pas
 validation under unchanged host validation rules; the read side continues to validate each value.
 
 `isOneOf` and `isArrayOf` are predicate factories exported from the package root. Each returns a
-`JsonValidator` that you can call directly, compose with another factory or pass to `jsonColumn`.
+`JsonTypePredicate` that you can call directly, compose with another factory or pass to `jsonColumn`.
 You can also supply your own type predicate with the signature `(value: unknown) => value is T`.
 
 `isoDateColumn<T>` and `isoTimestampColumn<T>` accept a host string type for the property.
@@ -107,9 +107,9 @@ their elements and density at runtime.
 
 Since v0.3.0, the root and the type-only
 `@kevinjohn/adonisjs-lucid-checked-columns/types` entry both expose
-`JsonValidator`, `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
+`JsonTypePredicate` (named `JsonValidator` up to v0.4.0), `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
 same type identities. The `/types` entry also resolves at runtime, so both
-`import type { JsonValidator }` and the inline `import { type JsonValidator }` form load under
+`import type { JsonTypePredicate }` and the inline `import { type JsonTypePredicate }` form load under
 `verbatimModuleSyntax` and Node's type stripping. The branded ISO types describe values narrowed by
 their respective predicates.
 
