@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Breaking:** Rename the exported type `JsonValidator<T>` to `JsonTypePredicate<T>` in the root
+  and `/types` entries. Replace each `JsonValidator` import and annotation with
+  `JsonTypePredicate`; the type's shape is unchanged.
 - Move the release consumer smoke fixture from `examples/release-consumer` to
   `tests/fixtures/release_consumer` and retire the associated convention departures.
 - Preserve executed test counts in changed checks when using the dot reporter.

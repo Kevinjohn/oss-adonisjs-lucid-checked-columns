@@ -107,7 +107,7 @@ their elements and density at runtime.
 
 Since v0.3.0, the root and the type-only
 `@kevinjohn/adonisjs-lucid-checked-columns/types` entry both expose
-`JsonTypePredicate`, `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
+`JsonTypePredicate` (named `JsonValidator` up to v0.4.0), `JsonColumnOptions`, `IsoColumnOptions`, `IsoDate` and `IsoTimestamp` with the
 same type identities. The `/types` entry also resolves at runtime, so both
 `import type { JsonTypePredicate }` and the inline `import { type JsonTypePredicate }` form load under
 `verbatimModuleSyntax` and Node's type stripping. The branded ISO types describe values narrowed by
