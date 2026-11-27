@@ -33,7 +33,7 @@ const formatterInputs = [
 
 const isSpec = (path: string) => /^tests\/.+\.spec\.ts$/.test(path)
 const isTypeScript = (path: string) => /\.[cm]?tsx?$/.test(path)
-const isEslintIgnored = (path: string) => /^tmp\//.test(path)
+const isEslintIgnored = (path: string) => /^(tests\/fixtures|tmp)\//.test(path)
 const isLintable = (path: string) =>
   (/\.[cm]?[jt]sx?$/.test(path) && !isEslintIgnored(path)) || dependencyFiles.includes(path)
 

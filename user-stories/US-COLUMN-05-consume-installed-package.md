@@ -7,7 +7,7 @@ As an application developer, I want to import the published hooks and types into
 **Entry:** Install [v0.4.0](../README.md#install), then import runtime helpers from `@kevinjohn/adonisjs-lucid-checked-columns` and apply them with Lucid’s `@column`.
 **Documentation:** [Install](../README.md#install), [Use](../README.md#use), [API](../README.md#api).
 **Source:** [Root exports](../index.ts), [type entry](../src/types.ts), [package manifest](../package.json).
-**Coverage:** [Packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh).
+**Coverage:** [Packed consumer](../tests/fixtures/release_consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh).
 
 ## Acceptance criteria
 
@@ -53,6 +53,6 @@ flowchart TD
     N --> O["Shell exit removes temporary fixture"]
 ```
 
-The `/types` export selects declarations during typechecking and the default JavaScript module during execution. The [packed consumer](../examples/release-consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit.
+The `/types` export selects declarations during typechecking and the default JavaScript module during execution. The [packed consumer](../tests/fixtures/release_consumer/model.ts) closes the database in `finally` after the model assertions, also on failure. The [smoke script](../bin/release_consumer_smoke.sh) removes the temporary fixture on shell exit.
 
-**Code references:** [packed consumer](../examples/release-consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh), [smoke command](../examples/release-consumer/package.json), [root exports](../index.ts), [type entry](../src/types.ts), [export map](../package.json#L23).
+**Code references:** [packed consumer](../tests/fixtures/release_consumer/model.ts), [smoke script](../bin/release_consumer_smoke.sh), [smoke command](../tests/fixtures/release_consumer/package.json), [root exports](../index.ts), [type entry](../src/types.ts), [export map](../package.json#L23).
